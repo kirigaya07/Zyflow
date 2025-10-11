@@ -21,7 +21,7 @@
   --color-popover-foreground: oklch(var(--popover-foreground));
   --color-card: oklch(var(--card));
   --color-card-foreground: oklch(var(--card-foreground));
-  
+
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
@@ -210,5 +210,3 @@
     max-width: 87.5rem;
   }
 }
-
-
