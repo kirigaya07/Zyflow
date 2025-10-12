@@ -10,7 +10,19 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "images.clerk.dev",
+      },
+      {
+        protocol: "https",
         hostname: "ucarecdn.com",
+      },
+      {
+        protocol: "https",
+        hostname: "ucarecdn.net",
+      },
+      {
+        protocol: "https",
+        hostname: "ucarecd.net",
       },
     ],
   },

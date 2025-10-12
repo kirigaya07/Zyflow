@@ -35,7 +35,15 @@ const ProfilePicture = ({ userImage, onDelete, onUpload }: Props) => {
         {userImage ? (
           <>
             <div className="relative h-full w-2/12">
-              <Image src={userImage} alt="User_Image" fill />
+              {userImage.includes('ucarecdn') || userImage.includes('ucarecd') ? (
+                <img 
+                  src={userImage} 
+                  alt="User_Image" 
+                  className="w-full h-full object-cover rounded-lg"
+                />
+              ) : (
+                <Image src={userImage} alt="User_Image" fill />
+              )}
             </div>
             <Button
               onClick={onRemoveProfileImage}
