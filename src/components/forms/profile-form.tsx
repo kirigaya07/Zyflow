@@ -17,23 +17,35 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { Loader2 } from "lucide-react";
 
-type Props = {};
+type Props = {
+  user: any;
+  onUpdate: (name: string) => Promise<any>;
+};
 
-const ProfileForm = (props: Props) => {
+const ProfileForm = ({ user, onUpdate }: Props) => {
   const [isLoading, setIsLoading] = useState(false);
   const form = useForm<z.infer<typeof EditUserProfileSchema>>({
     mode: "onChange",
     resolver: zodResolver(EditUserProfileSchema),
     defaultValues: {
-      name: "",
-      email: "",
+      name: user?.name || "",
+      email: user?.email || "",
     },
   });
   return (
     <Form {...form}>
       <form
         className="flex flex-col gap-6"
-       
+        onSubmit={form.handleSubmit(async (data) => {
+          setIsLoading(true);
+          try {
+            await onUpdate(data.name);
+          } catch (error) {
+            console.error("Failed to update user:", error);
+          } finally {
+            setIsLoading(false);
+          }
+        })}
       >
         <FormField
           disabled={isLoading}

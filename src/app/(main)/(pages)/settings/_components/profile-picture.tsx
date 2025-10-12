@@ -8,17 +8,23 @@ import { X } from "lucide-react";
 
 type Props = {
   userImage: string | null;
-  onDelete?: any;
-  onUpload: any;
+  onDelete?: () => Promise<any>;
+  onUpload: (url: string) => Promise<void>;
 };
 
 const ProfilePicture = ({ userImage, onDelete, onUpload }: Props) => {
   const router = useRouter();
 
   const onRemoveProfileImage = async () => {
-    const response = await onDelete();
-    if (response) {
-      router.refresh();
+    if (!onDelete) return;
+
+    try {
+      const response = await onDelete();
+      if (response) {
+        router.refresh();
+      }
+    } catch (error) {
+      console.error("Failed to remove profile image:", error);
     }
   };
 
@@ -39,7 +45,16 @@ const ProfilePicture = ({ userImage, onDelete, onUpload }: Props) => {
             </Button>
           </>
         ) : (
-          <UploadCareButton onUpload={onUpload} />
+          <UploadCareButton
+            onUpload={async (url: string) => {
+              try {
+                await onUpload(url);
+                router.refresh();
+              } catch (error) {
+                console.error("Failed to upload profile image:", error);
+              }
+            }}
+          />
         )}
       </div>
     </div>
