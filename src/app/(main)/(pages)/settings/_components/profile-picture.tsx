@@ -35,10 +35,11 @@ const ProfilePicture = ({ userImage, onDelete, onUpload }: Props) => {
         {userImage ? (
           <>
             <div className="relative h-full w-2/12">
-              {userImage.includes('ucarecdn') || userImage.includes('ucarecd') ? (
-                <img 
-                  src={userImage} 
-                  alt="User_Image" 
+              {userImage.includes("ucarecdn") ||
+              userImage.includes("ucarecd") ? (
+                <img
+                  src={userImage}
+                  alt="User_Image"
                   className="w-full h-full object-cover rounded-lg"
                 />
               ) : (
