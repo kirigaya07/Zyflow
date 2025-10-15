@@ -86,7 +86,24 @@ const Navbar = async () => {
             {user ? "Dashboard" : "Get Started"}
           </span>
         </Link>
-        {user ? <UserButton afterSignOutUrl="/" /> : null}
+        {user ? (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400">
+              {user.firstName || user.emailAddresses?.[0]?.emailAddress || 'User'}
+            </span>
+            <UserButton 
+              afterSignOutUrl="/" 
+              appearance={{
+                elements: {
+                  avatarBox: "w-8 h-8",
+                  userButtonPopover: "z-[200]"
+                }
+              }}
+            />
+          </div>
+        ) : (
+          <div className="text-xs text-gray-500">Not logged in</div>
+        )}
         <button className="md:hidden" aria-label="Open mobile menu">
           <MenuIcon className="h-6 w-6" />
         </button>
