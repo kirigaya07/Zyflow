@@ -11,6 +11,7 @@
   "dependencies": {
     "@clerk/nextjs": "^6.33.3",
     "@hookform/resolvers": "^5.2.2",
+    "@notionhq/client": "^5.2.0",
     "@prisma/client": "^6.17.1",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -26,6 +27,7 @@
     "@tsparticles/slim": "^3.9.1",
     "@uploadcare/react-uploader": "^1.10.2",
     "@xyflow/react": "^12.8.6",
+    "axios": "^1.12.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
