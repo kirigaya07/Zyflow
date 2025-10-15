@@ -1,7 +1,8 @@
 import { ConnectionProviderProps } from "@/providers/connections-provider";
 import { EditorState } from "@/providers/editor-provider";
-import { useFuzzieStore } from "@/store";
+import { useZyflowStore } from "@/store";
 import React from "react";
+import ContentBasedOnTitle from "./content-based-on-title";
 // import ContentBasedOnTitle from "./content-based-on-title";
 
 type Props = {
@@ -15,7 +16,7 @@ const RenderOutputAccordion = ({ state, nodeConnection }: Props) => {
     setGoogleFile,
     selectedSlackChannels,
     setSelectedSlackChannels,
-  } = useFuzzieStore();
+  } = useZyflowStore();
   return (
     <ContentBasedOnTitle
       nodeConnection={nodeConnection}

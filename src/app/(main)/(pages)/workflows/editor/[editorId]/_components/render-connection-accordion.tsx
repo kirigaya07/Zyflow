@@ -22,7 +22,7 @@ import {
 import { CheckIcon, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useFuzzieStore } from "@/store";
+import { useZyflowStore } from "@/store";
 
 const frameworks = [
   {
@@ -66,7 +66,7 @@ const RenderConnectionAccordion = ({
 
   const { nodeConnection } = useNodeConnections();
   const { slackChannels, selectedSlackChannels, setSelectedSlackChannels } =
-    useFuzzieStore();
+    useZyflowStore();
 
   const [open, setOpen] = React.useState(false);
   const [value, setValue] = React.useState("");
