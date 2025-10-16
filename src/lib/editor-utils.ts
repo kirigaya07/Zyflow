@@ -94,12 +94,12 @@ export const onConnections = async (
   if (editorState.editor.selectedNode.data.title == "Discord") {
     const connection = await getDiscordConnectionUrl();
     if (connection) {
-      nodeConnection.setDiscordNode({
+      nodeConnection.setDiscordNode((prev: any) => ({
         webhookURL: connection.url,
-        content: "",
+        content: prev?.content || "",
         webhookName: connection.name,
         guildName: connection.guildName,
-      });
+      }));
     }
   }
   if (editorState.editor.selectedNode.data.title == "Notion") {
@@ -127,7 +127,7 @@ export const onConnections = async (
   if (editorState.editor.selectedNode.data.title == "Slack") {
     const connection = await getSlackConnection();
     if (connection) {
-      nodeConnection.setSlackNode({
+      nodeConnection.setSlackNode((prev: any) => ({
         appId: connection.appId,
         authedUserId: connection.authedUserId,
         authedUserToken: connection.authedUserToken,
@@ -136,8 +136,8 @@ export const onConnections = async (
         teamId: connection.teamId,
         teamName: connection.teamName,
         userId: connection.userId,
-        content: "",
-      });
+        content: prev?.content || "",
+      }));
     }
   }
 };

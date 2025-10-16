@@ -27,11 +27,9 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-// import RenderConnectionAccordion from "./render-connection-accordion";
-// import RenderOutputAccordion from "./render-output-accordian";
-// import { useZyflowStore } from "@/store";
 import EditorCanvasIconHelper from "./editor-canvas-card-icon-helper";
 import RenderConnectionAccordion from "./render-connection-accordion";
+import RenderOutputAccordion from "./render-output-accordian";
 import { useZyflowStore } from "@/store";
 
 type Props = {
@@ -46,7 +44,8 @@ const EditorCanvasSidebar = ({ nodes }: Props) => {
     if (state) {
       onConnections(nodeConnection, state, googleFile);
     }
-  }, [state]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.editor.selectedNode.data.title]);
 
   useEffect(() => {
     if (nodeConnection.slackNode.slackAccessToken) {
@@ -55,7 +54,7 @@ const EditorCanvasSidebar = ({ nodes }: Props) => {
         setSlackChannels
       );
     }
-  }, [nodeConnection]);
+  }, [nodeConnection, setSlackChannels]);
 
   return (
     <aside>
@@ -68,7 +67,7 @@ const EditorCanvasSidebar = ({ nodes }: Props) => {
         <TabsContent value="actions" className="flex flex-col gap-4 p-4">
           {Object.entries(EditorCanvasDefaultCardTypes)
             .filter(
-              ([_, cardType]) =>
+              ([, cardType]) =>
                 (!nodes.length && cardType.type === "Trigger") ||
                 (nodes.length && cardType.type === "Action")
             )
@@ -115,10 +114,10 @@ const EditorCanvasSidebar = ({ nodes }: Props) => {
               <AccordionTrigger className="!no-underline">
                 Action
               </AccordionTrigger>
-              {/* <RenderOutputAccordion
+              <RenderOutputAccordion
                 state={state}
                 nodeConnection={nodeConnection}
-              /> */}
+              />
             </AccordionItem>
           </Accordion>
         </TabsContent>

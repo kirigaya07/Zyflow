@@ -2,7 +2,7 @@ import { AccordionContent } from "@/components/ui/accordion";
 import { ConnectionProviderProps } from "@/providers/connections-provider";
 import { EditorState } from "@/providers/editor-provider";
 import { nodeMapper } from "@/lib/types";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -15,7 +15,6 @@ import { onContentChange } from "@/lib/editor-utils";
 import GoogleFileDetails from "./google-file-details";
 import GoogleDriveFiles from "./google-drive-files";
 import ActionButton from "./action-button";
-import { getFileMetaData } from "@/app/(main)/(pages)/connections/_actions/google-connection";
 import axios from "axios";
 import { toast } from "sonner";
 
@@ -51,6 +50,8 @@ const ContentBasedOnTitle = ({
 }: Props) => {
   const { selectedNode } = newState.editor;
   const title = selectedNode.data.title;
+  const [localContent, setLocalContent] = useState("");
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     const reqGoogle = async () => {
@@ -70,6 +71,36 @@ const ContentBasedOnTitle = ({
 
   // @ts-ignore
   const nodeConnectionType: any = nodeConnection[nodeMapper[title]];
+
+  // Initialize local content from node connection
+  useEffect(() => {
+    if (!isInitialized && nodeConnectionType?.content !== undefined) {
+      setLocalContent(nodeConnectionType.content || "");
+      setIsInitialized(true);
+    }
+  }, [nodeConnectionType, isInitialized]);
+
+  // Debounced update to nodeConnection for content
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    const timeoutId = setTimeout(() => {
+      if (localContent !== nodeConnectionType?.content) {
+        const fakeEvent = {
+          target: { value: localContent },
+        } as React.ChangeEvent<HTMLInputElement>;
+        onContentChange(nodeConnection, title, fakeEvent);
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localContent, isInitialized]);
+
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setLocalContent(event.target.value);
+  };
+
   if (!nodeConnectionType) return <p>Not connected</p>;
 
   const isConnected =
@@ -103,8 +134,9 @@ const ContentBasedOnTitle = ({
 
           <Input
             type="text"
-            value={nodeConnectionType.content}
-            onChange={(event) => onContentChange(nodeConnection, title, event)}
+            value={localContent}
+            onChange={handleInputChange}
+            placeholder="Type your message here..."
           />
 
           {JSON.stringify(file) !== "{}" && title !== "Google Drive" && (

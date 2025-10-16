@@ -24,6 +24,8 @@ import { Button } from "../ui/button";
 import { Loader2 } from "lucide-react";
 // import { toast } from "sonner";
 import { useModal } from "@/providers/model-provider";
+import { onCreateWorkflow } from "@/app/(main)/(pages)/workflows/_actions/workflow-connections";
+import { toast } from "sonner";
 
 type Props = {
   title?: string;
@@ -44,14 +46,14 @@ const Workflowform = ({ subTitle, title }: Props) => {
   const isLoading = form.formState.isLoading;
   const router = useRouter();
 
-  //   const handleSubmit = async (values: z.infer<typeof WorkflowFormSchema>) => {
-  //     const workflow = await onCreateWorkflow(values.name, values.description);
-  //     if (workflow) {
-  //       toast.message(workflow.message);
-  //       router.refresh();
-  //     }
-  //     setClose();
-  //   };
+  const handleSubmit = async (values: z.infer<typeof WorkflowFormSchema>) => {
+    const workflow = await onCreateWorkflow(values.name, values.description);
+    if (workflow) {
+      toast.message(workflow.message);
+      router.refresh();
+    }
+    setClose();
+  };
 
   return (
     <Card className="w-full max-w-[650px] border-none">
@@ -63,7 +65,10 @@ const Workflowform = ({ subTitle, title }: Props) => {
       )}
       <CardContent>
         <Form {...form}>
-          <form className="flex flex-col gap-4 text-left">
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="flex flex-col gap-4 text-left"
+          >
             <FormField
               disabled={isLoading}
               control={form.control}

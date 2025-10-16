@@ -29,6 +29,7 @@ import { v4 } from "uuid";
 import { EditorCanvasDefaultCardTypes } from "@/lib/constants";
 import FlowInstance from "./flow-instance";
 import EditorCanvasSidebar from "./editor-canvas-sidebar";
+import { onGetNodesEdges } from "../../../_actions/workflow-connections";
 
 type Props = object;
 
@@ -144,6 +145,7 @@ const EditorCanvas = (props: Props) => {
   useEffect(() => {
     dispatch({ type: "LOAD_DATA", payload: { edges, elements: nodes } });
   }, [nodes, edges]);
+
   const nodeTypes = useMemo(
     () => ({
       Action: EditorCanvasCardSingle,
@@ -161,13 +163,29 @@ const EditorCanvas = (props: Props) => {
     }),
     []
   );
+
+  const onGetWorkFlow = async () => {
+    setIsWorkFlowLoading(true);
+    const response = await onGetNodesEdges(pathname.split("/").pop()!);
+    if (response) {
+      setEdges(JSON.parse(response.edges!));
+      setNodes(JSON.parse(response.nodes!));
+      setIsWorkFlowLoading(false);
+    }
+    setIsWorkFlowLoading(false);
+  };
+
+  useEffect(() => {
+    onGetWorkFlow();
+  }, []);
+
   return (
     <ResizablePanelGroup direction="horizontal">
       <ResizablePanel defaultSize={70}>
-        <div className="h-full w-full overflow-hidden">
+        <div className="flex h-full items-center justify-center">
           <div
-            style={{ width: "100%", height: "calc(100vh - 140px)" }}
-            className="relative bg-background"
+            style={{ width: "100%", height: "100%", paddingBottom: "70px" }}
+            className="relative"
           >
             {isWorkFlowLoading ? (
               <div className="absolute flex h-full w-full items-center justify-center">
@@ -190,7 +208,7 @@ const EditorCanvas = (props: Props) => {
               </div>
             ) : (
               <ReactFlow
-                className="w-full h-full"
+                className="w-[300px]"
                 onDrop={onDrop}
                 onDragOver={onDragOver}
                 nodes={state.editor.elements}

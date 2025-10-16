@@ -32,6 +32,7 @@ const Connections = async (props: Props) => {
     bot_user_id,
     team_id,
     team_name,
+    discord_setup,
   } = searchParams ?? {
     webhook_id: "",
     webhook_name: "",
@@ -51,41 +52,54 @@ const Connections = async (props: Props) => {
     bot_user_id: "",
     team_id: "",
     team_name: "",
+    discord_setup: "",
   };
 
   const user = await currentUser();
   if (!user) return null;
 
   const onUserConnections = async () => {
-    console.log(database_id);
-    await onDiscordConnect(
-      channel_id!,
-      webhook_id!,
-      webhook_name!,
-      webhook_url!,
-      user.id,
-      guild_name!,
-      guild_id!
-    );
-    await onNotionConnect(
-      access_token!,
-      workspace_id!,
-      workspace_icon!,
-      workspace_name!,
-      database_id!,
-      user.id
-    );
+    // Only call the connection handler for the service that just completed OAuth
+    if (webhook_id && channel_id && guild_id && !discord_setup) {
+      // Discord OAuth completed with webhook creation
+      await onDiscordConnect(
+        channel_id!,
+        webhook_id!,
+        webhook_name!,
+        webhook_url!,
+        user.id,
+        guild_name!,
+        guild_id!
+      );
+    }
+    // Note: discord_setup=true means Discord OAuth is authorized but webhook not yet created
+    // This will be handled separately when user selects a channel
 
-    await onSlackConnect(
-      app_id!,
-      authed_user_id!,
-      authed_user_token!,
-      slack_access_token!,
-      bot_user_id!,
-      team_id!,
-      team_name!,
-      user.id
-    );
+    if (workspace_id && database_id && access_token && !discord_setup) {
+      // Notion OAuth completed
+      await onNotionConnect(
+        access_token!,
+        workspace_id!,
+        workspace_icon!,
+        workspace_name!,
+        database_id!,
+        user.id
+      );
+    }
+
+    if (app_id && team_id && slack_access_token) {
+      // Slack OAuth completed
+      await onSlackConnect(
+        app_id!,
+        authed_user_id!,
+        authed_user_token!,
+        slack_access_token!,
+        bot_user_id!,
+        team_id!,
+        team_name!,
+        user.id
+      );
+    }
 
     const connections: any = {};
 
