@@ -184,7 +184,13 @@ const EditorCanvas = (props: Props) => {
       <ResizablePanel defaultSize={70}>
         <div className="flex h-full items-center justify-center">
           <div
-            style={{ width: "100%", height: "100%", paddingBottom: "70px" }}
+            style={{
+              width: "100%",
+              height: "100%",
+              paddingBottom: "70px",
+              paddingLeft: "16px",
+              paddingTop: "16px",
+            }}
             className="relative"
           >
             {isWorkFlowLoading ? (
@@ -208,7 +214,7 @@ const EditorCanvas = (props: Props) => {
               </div>
             ) : (
               <ReactFlow
-                className="w-[300px]"
+                className="w-full h-full"
                 onDrop={onDrop}
                 onDragOver={onDragOver}
                 nodes={state.editor.elements}
@@ -228,12 +234,7 @@ const EditorCanvas = (props: Props) => {
                   zoomable
                   pannable
                 />
-                <Background
-                  //@ts-ignore
-                  variant="dots"
-                  gap={12}
-                  size={1}
-                />
+                <Background variant="dots" gap={12} size={1} />
               </ReactFlow>
             )}
           </div>

@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import {
   Card,
@@ -22,19 +24,19 @@ type Props = {
 };
 
 const Workflow = ({ description, id, name, publish }: Props) => {
-  const onPublishFlow = async (event: any) => {
+  const onPublishFlow = async (event: React.MouseEvent<HTMLButtonElement>) => {
     const response = await onFlowPublish(
       id,
-      event.target.ariaChecked === "false"
+      event.currentTarget.ariaChecked === "false"
     );
     if (response) toast.message(response);
   };
 
   return (
-    <Card className="flex w-full items-center justify-between">
-      <CardHeader className="flex flex-col gap-4">
-        <Link href={`/workflows/editor/${id}`}>
-          <div className="flex flex-row gap-2">
+    <Card className="flex w-full items-center justify-between min-h-[120px]">
+      <CardHeader className="flex-1 py-0">
+        <Link href={`/workflows/editor/${id}`} className="block">
+          <div className="flex flex-row gap-3 mb-4">
             <Image
               src="/googleDrive.png"
               alt="Google Drive"
@@ -44,31 +46,34 @@ const Workflow = ({ description, id, name, publish }: Props) => {
             />
             <Image
               src="/notion.png"
-              alt="Google Drive"
+              alt="Notion"
               height={30}
               width={30}
               className="object-contain"
             />
             <Image
               src="/discord.png"
-              alt="Google Drive"
+              alt="Discord"
               height={30}
               width={30}
               className="object-contain"
             />
           </div>
-          <div className="">
-            <CardTitle className="text-lg">{name}</CardTitle>
-            <CardDescription>{description}</CardDescription>
+          <div>
+            <CardTitle className="text-xl mb-2">{name}</CardTitle>
+            <CardDescription className="text-sm">{description}</CardDescription>
           </div>
         </Link>
       </CardHeader>
-      <div className="flex flex-col items-center gap-2 p-4">
-        <Label htmlFor="airplane-mode" className="text-muted-foreground">
+      <div className="flex flex-col items-center justify-center gap-2 px-6 py-0 min-w-[80px]">
+        <Label
+          htmlFor={`switch-${id}`}
+          className="text-muted-foreground text-sm font-medium"
+        >
           {publish! ? "On" : "Off"}
         </Label>
         <Switch
-          id="airplane-mode"
+          id={`switch-${id}`}
           onClick={onPublishFlow}
           defaultChecked={publish!}
         />

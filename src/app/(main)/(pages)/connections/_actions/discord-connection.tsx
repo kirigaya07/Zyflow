@@ -86,6 +86,22 @@ export const onDiscordConnect = async (
             },
           },
         });
+      } else {
+        // Webhook exists for this channel - ensure connection record exists
+        const existingConnection = webhook_channel.connections.find(
+          (conn) => conn.type === "Discord"
+        );
+
+        if (!existingConnection) {
+          // Connection record missing, create it
+          await db.connections.create({
+            data: {
+              userId: id,
+              type: "Discord",
+              discordWebhookId: webhook_channel.id,
+            },
+          });
+        }
       }
     }
   }
@@ -110,13 +126,35 @@ export const getDiscordConnectionUrl = async () => {
 };
 
 export const postContentToWebHook = async (content: string, url: string) => {
-  console.log(content);
+  console.log("Posting to Discord webhook:", url);
+  console.log("Content:", content);
+
   if (content != "") {
-    const posted = await axios.post(url, { content });
-    if (posted) {
-      return { message: "success" };
+    try {
+      const posted = await axios.post(url, { content });
+      if (posted) {
+        return { message: "success" };
+      }
+      return { message: "failed request" };
+    } catch (error: any) {
+      console.error(
+        "Discord webhook error:",
+        error.response?.status,
+        error.response?.data
+      );
+
+      if (error.response?.status === 404) {
+        return {
+          message: "Webhook not found - please reconnect Discord integration",
+          error: "webhook_deleted",
+        };
+      }
+
+      return {
+        message: `Failed to post: ${error.message}`,
+        error: error.response?.data || error.message,
+      };
     }
-    return { message: "failed request" };
   }
   return { message: "String empty" };
 };
