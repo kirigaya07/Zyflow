@@ -15,19 +15,37 @@ const GoogleDriveFiles = (props: Props) => {
 
   const reqGoogle = async () => {
     setLoading(true);
-    const response = await axios.get("/api/drive-activity");
-    if (response) {
-      toast.message(response.data);
+    try {
+      const response = await axios.get("/api/drive-activity");
+      if (response) {
+        toast.message(response.data);
+        setIsListening(true);
+      }
+    } catch {
+      toast.error("Failed to create listener");
+      setIsListening(false);
+    } finally {
       setLoading(false);
-      setIsListening(true);
     }
-    setIsListening(false);
   };
 
   const onListener = async () => {
-    const listener = await getGoogleListener();
-    if (listener?.googleResourceId !== null) {
-      setIsListening(true);
+    try {
+      const listener = await getGoogleListener();
+      console.log("Google Listener data:", listener);
+      console.log("googleResourceId value:", listener?.googleResourceId);
+
+      // Only set to true if there's actually a resource ID
+      const hasListener = Boolean(
+        listener?.googleResourceId &&
+          listener.googleResourceId.trim().length > 0
+      );
+
+      console.log("Has listener:", hasListener);
+      setIsListening(hasListener);
+    } catch {
+      console.error("Error checking listener");
+      setIsListening(false);
     }
   };
 

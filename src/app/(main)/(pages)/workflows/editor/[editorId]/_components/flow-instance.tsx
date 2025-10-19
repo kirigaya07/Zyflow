@@ -14,7 +14,6 @@ type Props = {
   edges: any[];
   nodes: any[];
 };
-
 const FlowInstance = ({ children, edges, nodes }: Props) => {
   const pathname = usePathname();
   const [isFlow, setIsFlow] = useState([]);
