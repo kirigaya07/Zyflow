@@ -55,15 +55,24 @@ const ContentBasedOnTitle = ({
 
   useEffect(() => {
     const reqGoogle = async () => {
-      const response: { data: { message: { files: any } } } = await axios.get(
-        "/api/drive"
-      );
-      if (response) {
-        console.log(response.data.message.files[0]);
-        toast.message("Fetched File");
-        setFile(response.data.message.files[0]);
-      } else {
-        toast.error("Something went wrong");
+      try {
+        const response = await axios.get("/api/drive");
+        if (
+          response &&
+          response.data &&
+          response.data.message &&
+          response.data.message.files
+        ) {
+          console.log(response.data.message.files[0]);
+          toast.message("Fetched File");
+          setFile(response.data.message.files[0]);
+        } else {
+          console.log("No files found or invalid response structure");
+          toast.message("No files found");
+        }
+      } catch (error) {
+        console.error("Error fetching Drive files:", error);
+        toast.error("Failed to fetch Drive files");
       }
     };
     reqGoogle();

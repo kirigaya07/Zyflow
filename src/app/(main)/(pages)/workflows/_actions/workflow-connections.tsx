@@ -69,52 +69,17 @@ export const onCreateNodeTemplate = async (
     });
 
     if (response) {
-      const channelList = await db.workflows.findUnique({
-        where: {
-          id: workflowId,
-        },
-        select: {
-          slackChannels: true,
-        },
-      });
-
-      if (channelList) {
-        //remove duplicates before insert
-        const NonDuplicated = channelList.slackChannels.filter(
-          (channel) => channel !== channels![0].value
-        );
-
-        NonDuplicated!
-          .map((channel) => channel)
-          .forEach(async (channel) => {
-            await db.workflows.update({
-              where: {
-                id: workflowId,
-              },
-              data: {
-                slackChannels: {
-                  push: channel,
-                },
-              },
-            });
-          });
-
-        return "Slack template saved";
-      }
-      channels!
-        .map((channel) => channel.value)
-        .forEach(async (channel) => {
-          await db.workflows.update({
-            where: {
-              id: workflowId,
-            },
-            data: {
-              slackChannels: {
-                push: channel,
-              },
-            },
-          });
+      // Clear existing channels and add new ones
+      if (channels && channels.length > 0) {
+        await db.workflows.update({
+          where: {
+            id: workflowId,
+          },
+          data: {
+            slackChannels: channels.map((channel) => channel.value),
+          },
         });
+      }
       return "Slack template saved";
     }
   }

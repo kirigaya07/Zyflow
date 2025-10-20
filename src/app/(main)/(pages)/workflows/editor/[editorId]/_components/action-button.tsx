@@ -25,8 +25,16 @@ const ActionButton = ({
   const pathname = usePathname();
 
   const onSendDiscordMessage = useCallback(async () => {
+    console.log("Discord node content:", nodeConnection.discordNode.content);
+    console.log("Discord webhook URL:", nodeConnection.discordNode.webhookURL);
+
+    // Use the actual content, or fallback if empty
+    const messageContent =
+      nodeConnection.discordNode.content?.trim() || "Test message from Zyflow!";
+    console.log("Sending message:", messageContent);
+
     const response = await postContentToWebHook(
-      nodeConnection.discordNode.content,
+      messageContent,
       nodeConnection.discordNode.webhookURL
     );
 
