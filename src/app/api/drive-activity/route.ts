@@ -6,6 +6,15 @@ import { db } from "@/lib/db";
 
 export async function GET() {
   try {
+    console.log("🔍 Starting Drive listener creation...");
+    console.log("Environment check:", {
+      hasGoogleClientId: !!process.env.GOOGLE_CLIENT_ID,
+      hasGoogleClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
+      hasOAuth2RedirectUri: !!process.env.OAUTH2_REDIRECT_URI,
+      hasNgrokUri: !!process.env.NGROK_URI,
+      ngrokUri: process.env.NGROK_URI,
+    });
+
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
@@ -15,6 +24,23 @@ export async function GET() {
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ message: "User not found" }, { status: 401 });
+    }
+
+    // Check if user already has a listener
+    const existingUser = await db.user.findFirst({
+      where: { clerkId: userId },
+      select: { googleResourceId: true },
+    });
+
+    if (existingUser?.googleResourceId) {
+      console.log(
+        "⚠️ User already has a Drive listener:",
+        existingUser.googleResourceId
+      );
+      console.log("🔄 Creating a new listener anyway to refresh it...");
+      // Don't return early - create a new listener
+    } else {
+      console.log("🔄 No existing listener found, creating new one...");
     }
 
     const clerkResponse = await (
@@ -49,6 +75,15 @@ export async function GET() {
       throw new Error("startPageToken is unexpectedly null");
     }
 
+    const webhookAddress = `${process.env.NGROK_URI}/api/drive-activity/notification`;
+    console.log("Creating Drive changes watch:", {
+      supportsAllDrives: true,
+      supportsTeamDrives: true,
+      webhookAddress,
+      startPageToken,
+      channelId,
+    });
+
     const listener = await drive.changes.watch({
       pageToken: startPageToken,
       supportsAllDrives: true,
@@ -56,7 +91,7 @@ export async function GET() {
       requestBody: {
         id: channelId,
         type: "web_hook",
-        address: `${process.env.NGROK_URI}/api/drive-activity/notification`,
+        address: webhookAddress,
         kind: "api#channel",
       },
     });
@@ -72,9 +107,15 @@ export async function GET() {
         },
       });
 
-      if (channelStored) {
-        return new NextResponse("Listening to changes...");
-      }
+      console.log("Drive watch created", {
+        httpStatus: listener.status,
+        resourceId: listener.data.resourceId,
+        channelId,
+        address: webhookAddress,
+        expiration: listener.data.expiration,
+      });
+
+      if (channelStored) return new NextResponse("Listening to changes...");
     }
 
     return new NextResponse("Oops! something went wrong, try again");

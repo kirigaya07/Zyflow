@@ -3,62 +3,67 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    process.env.OAUTH2_REDIRECT_URI
-  );
-
-  const { userId } = auth();
-  if (!userId) {
-    return NextResponse.json({ message: "User not found" });
-  }
-
-  const clerkResponse = await clerkClient.users.getUserOauthAccessToken(
-    userId,
-    "oauth_google"
-  );
-
-  const accessToken = clerkResponse[0].token;
-  oauth2Client.setCredentials({
-    access_token: accessToken,
-  });
-
-  const drive = google.drive({
-    version: "v3",
-    auth: oauth2Client,
-  });
-
   try {
-    const response = await drive.files.list();
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.OAUTH2_REDIRECT_URI
+    );
 
-    if (response) {
-      return Response.json(
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ message: "User not found" }, { status: 401 });
+    }
+
+    const clerkResponse = await (
+      await clerkClient()
+    ).users.getUserOauthAccessToken(userId, "google");
+
+    if (!clerkResponse || clerkResponse.data.length === 0) {
+      return NextResponse.json(
+        { message: "Google account not connected" },
+        { status: 400 }
+      );
+    }
+
+    const accessToken = clerkResponse.data[0].token;
+    oauth2Client.setCredentials({
+      access_token: accessToken,
+    });
+
+    const drive = google.drive({
+      version: "v3",
+      auth: oauth2Client,
+    });
+
+    const response = await drive.files.list({
+      pageSize: 10,
+      fields: "files(id,name,mimeType,createdTime,modifiedTime)",
+    });
+
+    if (response.data.files && response.data.files.length > 0) {
+      return NextResponse.json(
         {
-          message: response.data,
+          message: { files: response.data.files },
         },
-        {
-          status: 200,
-        }
+        { status: 200 }
       );
     } else {
-      return Response.json(
+      return NextResponse.json(
         {
-          message: "No files found",
+          message: { files: [] },
         },
-        {
-          status: 200,
-        }
+        { status: 200 }
       );
     }
   } catch (error) {
-    return Response.json(
+    console.error("Error fetching Drive files:", error);
+    return NextResponse.json(
       {
         message: "Something went wrong",
+        error: error instanceof Error ? error.message : "Unknown error",
       },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }

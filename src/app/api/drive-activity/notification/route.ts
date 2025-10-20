@@ -5,6 +5,10 @@ import { db } from "@/lib/db";
 import axios from "axios";
 import { headers } from "next/headers";
 
+// In-memory deduplication store
+const processedMessages = new Set<string>();
+const recentActivity = new Set<string>();
+
 export async function POST() {
   const headersList = await headers();
   // Log all relevant Google headers to verify delivery/validation
@@ -12,7 +16,49 @@ export async function POST() {
   headersList.forEach((value, key) => {
     if (key.startsWith("x-goog-")) headerSnapshot[key] = value;
   });
-  console.log("Drive webhook received", headerSnapshot);
+
+  // Create unique message identifier
+  const messageId = `${headerSnapshot["x-goog-resource-id"]}-${headerSnapshot["x-goog-message-number"]}`;
+  const resourceId = headerSnapshot["x-goog-resource-id"];
+
+  console.log("🔍 Processing webhook:", {
+    messageId,
+    resourceState: headerSnapshot["x-goog-resource-state"],
+    messageNumber: headerSnapshot["x-goog-message-number"],
+  });
+
+  // Skip sync messages (initial setup)
+  if (headerSnapshot["x-goog-resource-state"] === "sync") {
+    console.log("⏭️ Skipping sync message:", messageId);
+    return Response.json({ message: "sync skipped" }, { status: 200 });
+  }
+
+  // Skip if already processed
+  if (processedMessages.has(messageId)) {
+    console.log("⏭️ Skipping duplicate message:", messageId);
+    return Response.json({ message: "duplicate skipped" }, { status: 200 });
+  }
+
+  // Skip if we've processed this resource recently (within 5 seconds)
+  if (recentActivity.has(resourceId)) {
+    console.log("⏭️ Skipping recent activity for resource:", resourceId);
+    return Response.json(
+      { message: "recent activity skipped" },
+      { status: 200 }
+    );
+  }
+
+  // Mark as processed
+  processedMessages.add(messageId);
+  recentActivity.add(resourceId);
+
+  // Clear recent activity after 5 seconds
+  setTimeout(() => {
+    recentActivity.delete(resourceId);
+  }, 5000);
+
+  console.log("🔴 Drive webhook received", headerSnapshot);
+  console.log("📋 All Google Headers:", Object.keys(headerSnapshot));
 
   let channelResourceId: string | undefined;
   if (headerSnapshot["x-goog-resource-id"]) {
@@ -43,9 +89,12 @@ export async function POST() {
       }
 
       const workflow = await db.workflows.findMany({
-        where: { userId: user.clerkId },
+        where: {
+          userId: user.clerkId,
+          publish: true, // Only process published workflows
+        },
       });
-      console.log("Found workflows:", workflow.length);
+      console.log("Found published workflows:", workflow.length);
       workflow.forEach((w) => {
         console.log(`Workflow ${w.id}:`, {
           name: w.name,
@@ -53,6 +102,7 @@ export async function POST() {
           slackTemplate: w.slackTemplate,
           slackAccessToken: w.slackAccessToken ? "SET" : "MISSING",
           slackChannels: w.slackChannels,
+          discordTemplate: w.discordTemplate,
           publish: w.publish,
         });
       });
@@ -69,6 +119,12 @@ export async function POST() {
           let current = 0;
           while (current < flowPath.length) {
             if (flowPath[current] === "Discord") {
+              console.log("Executing Discord action for workflow:", flow.id);
+              console.log("Discord config:", {
+                hasTemplate: !!flow.discordTemplate,
+                template: flow.discordTemplate,
+              });
+
               const discordMessage = await db.discordWebhook.findFirst({
                 where: { userId: flow.userId },
                 select: { url: true },
@@ -78,8 +134,11 @@ export async function POST() {
                   flow.discordTemplate!,
                   discordMessage.url
                 );
+                console.log("Discord message sent successfully");
                 flowPath.splice(current, 1);
                 continue;
+              } else {
+                console.log("No Discord webhook found for user");
               }
             }
 
@@ -106,10 +165,17 @@ export async function POST() {
             }
 
             if (flowPath[current] === "Notion") {
+              const notionData = JSON.parse(flow.notionTemplate!);
+              // Extract just the file name from the complex object
+              const fileName =
+                typeof notionData === "string"
+                  ? notionData
+                  : notionData.name || "New Drive File";
+
               await onCreateNewPageInDatabase(
                 flow.notionDbId!,
                 flow.notionAccessToken!,
-                JSON.parse(flow.notionTemplate!)
+                fileName
               );
               flowPath.splice(current, 1);
               continue;
