@@ -86,6 +86,68 @@ export const onAddTemplate = (
   }
 };
 
+// Add a loading state to prevent multiple simultaneous calls
+let isLoadingConnections = false;
+
+export const preloadAllConnections = async (
+  nodeConnection: ConnectionProviderProps,
+  googleFile: any
+) => {
+  if (isLoadingConnections) {
+    return;
+  }
+
+  isLoadingConnections = true;
+
+  try {
+    // Load Discord connection
+    const discordConnection = await getDiscordConnectionUrl();
+    if (discordConnection) {
+      nodeConnection.setDiscordNode((prev: any) => ({
+        webhookURL: discordConnection.url,
+        content: prev?.content || "",
+        webhookName: discordConnection.name,
+        guildName: discordConnection.guildName,
+      }));
+    }
+
+    // Load Notion connection
+    const notionConnection = await getNotionConnection();
+    if (notionConnection) {
+      nodeConnection.setNotionNode({
+        accessToken: notionConnection.accessToken,
+        databaseId: notionConnection.databaseId,
+        workspaceName: notionConnection.workspaceName,
+        content: {
+          name: googleFile.name || "",
+          kind: googleFile.kind || "",
+          type: googleFile.mimeType || "",
+        },
+      });
+    }
+
+    // Load Slack connection
+    const slackConnection = await getSlackConnection();
+    if (slackConnection) {
+      nodeConnection.setSlackNode((prev: any) => ({
+        appId: slackConnection.appId,
+        authedUserId: slackConnection.authedUserId,
+        authedUserToken: slackConnection.authedUserToken,
+        slackAccessToken: slackConnection.slackAccessToken,
+        botUserId: slackConnection.botUserId,
+        teamId: slackConnection.teamId,
+        teamName: slackConnection.teamName,
+        userId: slackConnection.userId,
+        content: prev?.content || "",
+      }));
+    }
+  } catch (error) {
+    console.error("Error preloading connections:", error);
+  } finally {
+    isLoadingConnections = false;
+  }
+};
+
 export const onConnections = async (
   nodeConnection: ConnectionProviderProps,
   editorState: EditorState,

@@ -119,6 +119,13 @@ model Workflows {
   slackAccessToken  String?
   notionAccessToken String?
   notionDbId        String?
+  emailTemplate     String?
+  emailRecipients   String[]
+  emailSubject      String?
+  zoomMeetingId     String?
+  zoomTranscript    String?
+  zoomSummary       String?
+  zoomMeetingTitle  String?
   flowPath          String?
   cronPath          String?
   publish           Boolean? @default(false)

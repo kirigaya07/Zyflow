@@ -16,6 +16,7 @@ import {
 import {
   fetchBotSlackChannels,
   onConnections,
+  preloadAllConnections,
   //   fetchBotSlackChannels,
   //   onConnections,
   onDragStart,
@@ -27,6 +28,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
 import EditorCanvasIconHelper from "./editor-canvas-card-icon-helper";
 import RenderConnectionAccordion from "./render-connection-accordion";
 import RenderOutputAccordion from "./render-output-accordian";
@@ -40,6 +43,37 @@ const EditorCanvasSidebar = ({ nodes }: Props) => {
   const { state } = useEditor();
   const { nodeConnection } = useNodeConnections();
   const { googleFile, setSlackChannels } = useZyflowStore();
+
+  // Manual refresh function for connections
+  const refreshConnections = async () => {
+    nodeConnection.setIsLoading(true);
+    try {
+      if (googleFile) {
+        await preloadAllConnections(nodeConnection, googleFile);
+      }
+    } finally {
+      nodeConnection.setIsLoading(false);
+    }
+  };
+
+  // Preload all connections when component mounts and googleFile is available
+  useEffect(() => {
+    if (googleFile) {
+      preloadAllConnections(nodeConnection, googleFile);
+    }
+  }, [googleFile]);
+
+  // Also preload connections when nodes change (for templates) - but only once
+  useEffect(() => {
+    if (nodes.length > 0 && googleFile) {
+      const timer = setTimeout(() => {
+        preloadAllConnections(nodeConnection, googleFile);
+      }, 500); // Delay to prevent rapid calls
+
+      return () => clearTimeout(timer);
+    }
+  }, [nodes.length]);
+
   useEffect(() => {
     if (state) {
       onConnections(nodeConnection, state, googleFile);
@@ -49,12 +83,17 @@ const EditorCanvasSidebar = ({ nodes }: Props) => {
 
   useEffect(() => {
     if (nodeConnection.slackNode.slackAccessToken) {
-      fetchBotSlackChannels(
-        nodeConnection.slackNode.slackAccessToken,
-        setSlackChannels
-      );
+      // Add a small delay to prevent rapid calls
+      const timer = setTimeout(() => {
+        fetchBotSlackChannels(
+          nodeConnection.slackNode.slackAccessToken,
+          setSlackChannels
+        );
+      }, 1000);
+
+      return () => clearTimeout(timer);
     }
-  }, [nodeConnection, setSlackChannels]);
+  }, [nodeConnection.slackNode.slackAccessToken, setSlackChannels]);
 
   return (
     <aside>
@@ -93,6 +132,18 @@ const EditorCanvasSidebar = ({ nodes }: Props) => {
         <TabsContent value="settings" className="-mt-6">
           <div className="px-2 py-4 text-center text-xl font-bold">
             {state.editor.selectedNode.data.title}
+          </div>
+
+          <div className="px-2 pb-2">
+            <Button
+              onClick={refreshConnections}
+              variant="outline"
+              size="sm"
+              className="w-full"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh Connections
+            </Button>
           </div>
 
           <Accordion type="multiple">

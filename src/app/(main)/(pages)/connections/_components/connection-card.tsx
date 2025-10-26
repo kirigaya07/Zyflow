@@ -32,6 +32,10 @@ const ConnectionCard = ({
               width={48}
               height={48}
               className="object-contain"
+              onError={(e) => {
+                console.error("Failed to load connection image:", icon);
+                e.currentTarget.style.display = "none";
+              }}
             />
           </div>
           <div className="flex flex-col min-w-0 flex-1">
@@ -54,6 +58,12 @@ const ConnectionCard = ({
                   : title == "Slack"
                   ? process.env.NEXT_PUBLIC_SLACK_REDIRECT!
                   : title == "Google Drive"
+                  ? process.env.NEXT_PUBLIC_GOOGLE_DRIVE_AUTH_URL ||
+                    "/api/auth/google-drive"
+                  : title == "Email"
+                  ? process.env.NEXT_PUBLIC_GOOGLE_DRIVE_AUTH_URL ||
+                    "/api/auth/google-drive"
+                  : title == "Zoom"
                   ? process.env.NEXT_PUBLIC_GOOGLE_DRIVE_AUTH_URL ||
                     "/api/auth/google-drive"
                   : "#"

@@ -1,6 +1,7 @@
 import { postContentToWebHook } from "@/app/(main)/(pages)/connections/_actions/discord-connection";
 import { onCreateNewPageInDatabase } from "@/app/(main)/(pages)/connections/_actions/notion-connection";
 import { postMessageToSlack } from "@/app/(main)/(pages)/connections/_actions/slack-connection";
+import { sendEmailToMultipleRecipientsViaGmail } from "@/app/(main)/(pages)/connections/_actions/email-connection";
 import { db } from "@/lib/db";
 import axios from "axios";
 import { headers } from "next/headers";
@@ -177,6 +178,34 @@ export async function POST() {
                 flow.notionAccessToken!,
                 fileName
               );
+              flowPath.splice(current, 1);
+              continue;
+            }
+
+            if (flowPath[current] === "Email") {
+              console.log("Executing Email action for workflow:", flow.id);
+              console.log("Email config:", {
+                hasTemplate: !!flow.emailTemplate,
+                hasSubject: !!flow.emailSubject,
+                recipients: flow.emailRecipients,
+                template: flow.emailTemplate,
+                subject: flow.emailSubject,
+              });
+
+              if (flow.emailRecipients && flow.emailRecipients.length > 0) {
+                await sendEmailToMultipleRecipientsViaGmail(
+                  flow.emailRecipients,
+                  flow.emailSubject || "Drive Notification",
+                  flow.emailTemplate ||
+                    "A new file has been uploaded to Google Drive.",
+                  user.clerkId
+                );
+                console.log("Email sent successfully via Gmail API");
+              } else {
+                console.log(
+                  "❌ No email recipients selected - skipping Email action"
+                );
+              }
               flowPath.splice(current, 1);
               continue;
             }

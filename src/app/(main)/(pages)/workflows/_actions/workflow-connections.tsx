@@ -41,7 +41,11 @@ export const onCreateNodeTemplate = async (
   workflowId: string,
   channels?: Option[],
   accessToken?: string,
-  notionDbId?: string
+  notionDbId?: string,
+  emailRecipients?: Option[],
+  emailSubject?: string,
+  zoomMeetingId?: string,
+  zoomMeetingTitle?: string
 ) => {
   if (type === "Discord") {
     const response = await db.workflows.update({
@@ -97,6 +101,52 @@ export const onCreateNodeTemplate = async (
     });
 
     if (response) return "Notion template saved";
+  }
+
+  if (type === "Email") {
+    const response = await db.workflows.update({
+      where: {
+        id: workflowId,
+      },
+      data: {
+        emailTemplate: content,
+        emailSubject: emailSubject,
+      },
+    });
+
+    if (response) {
+      // Clear existing recipients and add new ones
+      if (emailRecipients && emailRecipients.length > 0) {
+        await db.workflows.update({
+          where: {
+            id: workflowId,
+          },
+          data: {
+            emailRecipients: emailRecipients.map(
+              (recipient) => recipient.value
+            ),
+          },
+        });
+      }
+      return "Email template saved";
+    }
+  }
+
+  if (type === "Zoom") {
+    const response = await db.workflows.update({
+      where: {
+        id: workflowId,
+      },
+      data: {
+        zoomMeetingId: zoomMeetingId,
+        zoomMeetingTitle: zoomMeetingTitle,
+        zoomSummary: content,
+      },
+    });
+
+    if (response) {
+      return "Zoom template saved";
+    }
   }
 };
 

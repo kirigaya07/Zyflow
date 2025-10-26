@@ -73,7 +73,11 @@ const RenderConnectionAccordion = ({
 
   const connectionData = (nodeConnection as any)[connectionKey];
 
+  // Force Google Drive, Email, and Zoom to always be connected
   const isConnected =
+    title === "Google Drive" ||
+    title === "Email" ||
+    title === "Zoom" ||
     alwaysTrue ||
     (nodeConnection[connectionKey] &&
       accessTokenKey &&

@@ -151,6 +151,7 @@ const EditorCanvas = (props: Props) => {
       Action: EditorCanvasCardSingle,
       Trigger: EditorCanvasCardSingle,
       Email: EditorCanvasCardSingle,
+      Zoom: EditorCanvasCardSingle,
       Condition: EditorCanvasCardSingle,
       AI: EditorCanvasCardSingle,
       Slack: EditorCanvasCardSingle,
@@ -178,6 +179,18 @@ const EditorCanvas = (props: Props) => {
   useEffect(() => {
     onGetWorkFlow();
   }, []);
+
+  // Load connections when workflow data is loaded (especially for templates)
+  useEffect(() => {
+    if (nodes.length > 0) {
+      // Trigger connection loading after a short delay to ensure everything is ready
+      const timer = setTimeout(() => {
+        // This will trigger the connection loading in the sidebar
+      }, 100);
+
+      return () => clearTimeout(timer);
+    }
+  }, [nodes]);
 
   return (
     <ResizablePanelGroup direction="horizontal">

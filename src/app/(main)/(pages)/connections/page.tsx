@@ -1,11 +1,12 @@
 import { CONNECTIONS } from "@/lib/constants";
 import React from "react";
-import ConnectionCard from "./_components/connection-card";
+import ZoomWatcherControl from "@/components/zoom-watcher-control";
 import { currentUser } from "@clerk/nextjs/server";
 import { onDiscordConnect } from "./_actions/discord-connection";
 import { onNotionConnect } from "./_actions/notion-connection";
 import { onSlackConnect } from "./_actions/slack-connection";
 import { getUserData } from "./_actions/get-user";
+import ConnectionCard from "./_components/connection-card";
 
 type Props = {
   searchParams: Promise<{ [key: string]: string | undefined }>;
@@ -113,7 +114,13 @@ const Connections = async (props: Props) => {
 
     // Google Drive connection will always be true
     // as it is given access during the login process
-    return { ...connections, "Google Drive": true };
+    // Email and Zoom use the same Google OAuth as Drive, so they're also connected
+    return {
+      ...connections,
+      "Google Drive": true,
+      Email: true,
+      Zoom: true,
+    };
   };
 
   const connections = await onUserConnections();
@@ -140,6 +147,11 @@ const Connections = async (props: Props) => {
                 connected={connections}
               />
             ))}
+          </div>
+
+          {/* Zoom Automation Control */}
+          <div className="mt-8">
+            <ZoomWatcherControl />
           </div>
         </section>
       </div>

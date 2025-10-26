@@ -104,6 +104,10 @@ export const menuOptions = [
 
 export const EditorCanvasDefaultCardTypes = {
   Email: { description: "Send and email to a user", type: "Action" },
+  Zoom: {
+    description: "Generate meeting summary and save to Drive",
+    type: "Action",
+  },
   Condition: {
     description: "Boolean operator that creates different conditions lanes.",
     type: "Action",
@@ -177,5 +181,19 @@ export const CONNECTIONS: Connection[] = [
     connectionKey: "slackNode",
     accessTokenKey: "slackAccessToken",
     slackSpecial: true,
+  },
+  {
+    title: "Email",
+    description: "Send email notifications to recipients when events occur.",
+    image: "/gmail.png",
+    connectionKey: "emailNode",
+    accessTokenKey: "emailRecipients",
+  },
+  {
+    title: "Zoom",
+    description: "Generate meeting summaries and save to Drive.",
+    image: "/zoom.png",
+    connectionKey: "zoomNode",
+    accessTokenKey: "meetingId",
   },
 ];

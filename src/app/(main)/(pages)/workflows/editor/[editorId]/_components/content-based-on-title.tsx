@@ -11,12 +11,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { onContentChange } from "@/lib/editor-utils";
 import GoogleFileDetails from "./google-file-details";
 import GoogleDriveFiles from "./google-drive-files";
 import ActionButton from "./action-button";
+import ZoomWatcherSection from "./zoom-watcher-section";
 import axios from "axios";
 import { toast } from "sonner";
+import { Activity } from "lucide-react";
+import { processUploadedTranscript } from "../../../_actions/zoom-upload-action";
 
 export interface Option {
   value: string;
@@ -53,6 +58,13 @@ const ContentBasedOnTitle = ({
   const [localContent, setLocalContent] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
 
+  // Zoom watcher state
+  const [isWatching, setIsWatching] = useState(false);
+  const [zoomFolderPath, setZoomFolderPath] = useState(
+    "C:\\Users\\anmol\\OneDrive\\Documents\\Zoom"
+  );
+  const [isLoading, setIsLoading] = useState(false);
+
   useEffect(() => {
     const reqGoogle = async () => {
       try {
@@ -83,11 +95,25 @@ const ContentBasedOnTitle = ({
 
   // Initialize local content from node connection
   useEffect(() => {
-    if (!isInitialized && nodeConnectionType?.content !== undefined) {
-      setLocalContent(nodeConnectionType.content || "");
-      setIsInitialized(true);
+    if (!isInitialized) {
+      if (title === "Email") {
+        setLocalContent(nodeConnection.emailNode.content || "");
+        setIsInitialized(true);
+      } else if (title === "Zoom") {
+        setLocalContent(nodeConnection.zoomNode.summary || "");
+        setIsInitialized(true);
+      } else if (nodeConnectionType?.content !== undefined) {
+        setLocalContent(nodeConnectionType.content || "");
+        setIsInitialized(true);
+      }
     }
-  }, [nodeConnectionType, isInitialized]);
+  }, [
+    nodeConnectionType,
+    nodeConnection.emailNode.content,
+    nodeConnection.zoomNode.summary,
+    isInitialized,
+    title,
+  ]);
 
   // Debounced update to nodeConnection for content
   useEffect(() => {
@@ -108,14 +134,33 @@ const ContentBasedOnTitle = ({
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setLocalContent(event.target.value);
-  };
 
-  if (!nodeConnectionType) return <p>Not connected</p>;
+    // For Email, also update the nodeConnection
+    if (title === "Email") {
+      nodeConnection.setEmailNode((prev: any) => ({
+        ...prev,
+        content: event.target.value,
+      }));
+    }
+
+    // For Zoom, also update the nodeConnection
+    if (title === "Zoom") {
+      nodeConnection.setZoomNode((prev: any) => ({
+        ...prev,
+        summary: event.target.value,
+      }));
+    }
+  };
 
   const isConnected =
     title === "Google Drive"
-      ? !nodeConnection.isLoading
-      : !!nodeConnectionType[
+      ? true // Google Drive is always connected via OAuth during login
+      : title === "Email"
+      ? true // Email uses same Google OAuth as Drive, so always connected
+      : title === "Zoom"
+      ? true // Zoom uses same Google OAuth as Drive, so always connected
+      : nodeConnectionType &&
+        !!nodeConnectionType[
           `${
             title === "Slack"
               ? "slackAccessToken"
@@ -126,6 +171,16 @@ const ContentBasedOnTitle = ({
               : ""
           }`
         ];
+
+  // Debug logging for Google Drive
+  if (title === "Google Drive") {
+    console.log("Google Drive content rendering:", {
+      title,
+      isConnected,
+      file,
+      nodeConnectionType,
+    });
+  }
 
   if (!isConnected) return <p>Not connected</p>;
 
@@ -138,15 +193,76 @@ const ContentBasedOnTitle = ({
             <CardDescription>{nodeConnectionType.guildName}</CardDescription>
           </CardHeader>
         )}
+        {title === "Email" && (
+          <CardHeader>
+            <CardTitle>Email Configuration</CardTitle>
+            <CardDescription>
+              Send email notifications via Gmail API
+            </CardDescription>
+          </CardHeader>
+        )}
+        {title === "Zoom" && (
+          <CardHeader>
+            <CardTitle>Zoom Configuration</CardTitle>
+            <CardDescription>
+              Generate meeting summaries and save to Drive
+            </CardDescription>
+          </CardHeader>
+        )}
         <div className="flex flex-col gap-3 px-6 py-3 pb-20">
-          <p>{title === "Notion" ? "Values to be stored" : "Message"}</p>
+          {title === "Email" ? (
+            <>
+              <p>Email Recipients</p>
+              <Input
+                type="text"
+                value={nodeConnection.emailNode.recipients.join(", ")}
+                onChange={(e) => {
+                  const emails = e.target.value
+                    .split(",")
+                    .map((email) => email.trim())
+                    .filter((email) => email);
+                  nodeConnection.setEmailNode((prev: any) => ({
+                    ...prev,
+                    recipients: emails,
+                  }));
+                }}
+                placeholder="Enter email addresses separated by commas (e.g., user1@example.com, user2@example.com)"
+              />
 
-          <Input
-            type="text"
-            value={localContent}
-            onChange={handleInputChange}
-            placeholder="Type your message here..."
-          />
+              <p>Email Subject</p>
+              <Input
+                type="text"
+                value={nodeConnection.emailNode.subject}
+                onChange={(e) => {
+                  nodeConnection.setEmailNode((prev: any) => ({
+                    ...prev,
+                    subject: e.target.value,
+                  }));
+                }}
+                placeholder="Enter email subject..."
+              />
+
+              <p>Email Content</p>
+              <Input
+                type="text"
+                value={localContent}
+                onChange={handleInputChange}
+                placeholder="Type your email content here..."
+              />
+            </>
+          ) : title === "Zoom" ? (
+            <ZoomWatcherSection nodeConnection={nodeConnection} />
+          ) : (
+            <>
+              <p>{title === "Notion" ? "Values to be stored" : "Message"}</p>
+              <Input
+                type="text"
+                value={localContent}
+                onChange={handleInputChange}
+                placeholder="Type your message here..."
+              />
+            </>
+          )}
 
           {JSON.stringify(file) !== "{}" && title !== "Google Drive" && (
             <Card className="w-full">
