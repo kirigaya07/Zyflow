@@ -3,8 +3,11 @@ import { onCreateNewPageInDatabase } from "@/app/(main)/(pages)/connections/_act
 import { postMessageToSlack } from "@/app/(main)/(pages)/connections/_actions/slack-connection";
 import { sendEmailToMultipleRecipientsViaGmail } from "@/app/(main)/(pages)/connections/_actions/email-connection";
 import { db } from "@/lib/db";
+import { clerkClient } from "@clerk/nextjs/server";
 import axios from "axios";
 import { headers } from "next/headers";
+import { google } from "googleapis";
+import OpenAI from "openai";
 
 // In-memory deduplication store
 const processedMessages = new Set<string>();
@@ -88,6 +91,19 @@ export async function POST() {
         );
         return;
       }
+
+      // Check for Zoom audio files and process them
+      const processingResult = await processZoomAudioFiles(user.clerkId);
+
+      // Only trigger workflows if new files were actually processed
+      if (!processingResult.newFilesProcessed) {
+        console.log("⏭️ No new files processed - skipping workflow triggers");
+        return;
+      }
+
+      console.log(
+        `🚀 ${processingResult.filesProcessed} new files processed - triggering workflows`
+      );
 
       const workflow = await db.workflows.findMany({
         where: {
@@ -265,4 +281,446 @@ export async function POST() {
   })();
 
   return ack;
+}
+
+/**
+ * Process Zoom audio files: Detect → Download → OpenAI → Upload summary
+ */
+async function processZoomAudioFiles(
+  userId: string
+): Promise<{ newFilesProcessed: boolean; filesProcessed: number }> {
+  try {
+    console.log("🎙️ Checking for Zoom audio files...");
+
+    let filesProcessed = 0;
+
+    // Initialize OpenAI client
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    // Get user's Google OAuth token from Clerk
+    const clerkResponse = await (
+      await clerkClient()
+    ).users.getUserOauthAccessToken(userId, "google");
+
+    if (!clerkResponse || clerkResponse.data.length === 0) {
+      console.log("No Google account connected");
+      return { newFilesProcessed: false, filesProcessed: 0 };
+    }
+
+    const accessToken = clerkResponse.data[0].token;
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.OAUTH2_REDIRECT_URI
+    );
+    oauth2Client.setCredentials({ access_token: accessToken });
+
+    const drive = google.drive({ version: "v3", auth: oauth2Client });
+
+    // Find the "Zoom Recordings" folder
+    let zoomRecordingsFolder: string | null = null;
+    const folders = await drive.files.list({
+      q: "mimeType='application/vnd.google-apps.folder' and name='Zoom Recordings'",
+      fields: "files(id,name)",
+      pageSize: 1,
+    });
+
+    if (folders.data.files && folders.data.files.length > 0) {
+      zoomRecordingsFolder = folders.data.files[0].id || null;
+      console.log("📁 Found Zoom Recordings folder:", zoomRecordingsFolder);
+    } else {
+      console.log("⚠️ Zoom Recordings folder not found");
+      return { newFilesProcessed: false, filesProcessed: 0 };
+    }
+
+    // Find all meeting subfolders
+    const meetingFolders = await drive.files.list({
+      q: `'${zoomRecordingsFolder}' in parents and mimeType='application/vnd.google-apps.folder'`,
+      fields: "files(id,name)",
+      orderBy: "modifiedTime desc",
+      pageSize: 10,
+    });
+
+    // Get the most recent meeting folder
+    const mostRecentMeeting = meetingFolders.data.files?.[0];
+
+    if (!mostRecentMeeting || !mostRecentMeeting.id) {
+      console.log("No meeting folders found");
+      return { newFilesProcessed: false, filesProcessed: 0 };
+    }
+
+    console.log(`🔍 Monitoring meeting folder: ${mostRecentMeeting.name}`);
+
+    // Poll for new audio files up to 10 times with 30 second intervals
+    let attempts = 0;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let files: any = null;
+
+    while (attempts < 10) {
+      const recentThreshold = new Date(
+        Date.now() - 2 * 60 * 1000
+      ).toISOString();
+
+      const result = await drive.files.list({
+        q: `'${mostRecentMeeting.id}' in parents and modifiedTime > '${recentThreshold}'`,
+        fields:
+          "files(id,name,mimeType,webContentLink,createdTime,modifiedTime,parents,size)",
+        orderBy: "modifiedTime desc",
+        pageSize: 10,
+      });
+
+      if (result.data.files && result.data.files.length > 0) {
+        files = result;
+        console.log(
+          `📄 Found ${files.data.files.length} files on attempt ${attempts + 1}`
+        );
+
+        // Debug: Log all found files
+        files.data.files.forEach(
+          (file: { name?: string; mimeType?: string; size?: string }) => {
+            console.log(
+              `🔍 File found: "${file.name}" | Type: ${file.mimeType} | Size: ${file.size}`
+            );
+          }
+        );
+
+        // Check if files are still changing (not fully uploaded yet)
+        // Wait 30 seconds, then check again if file sizes are stable
+        await new Promise((resolve) => setTimeout(resolve, 30000));
+
+        let filesStillChanging = false;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        for (const file of files.data.files as any[]) {
+          try {
+            const fileDetails = await drive.files.get({
+              fileId: file.id,
+              fields: "size,modifiedTime",
+            });
+            // If size changed, file is still uploading
+            if (fileDetails.data.size !== file.size) {
+              filesStillChanging = true;
+              break;
+            }
+          } catch (error) {
+            console.warn("Could not check file status:", error);
+          }
+        }
+
+        const allFilesStable = !filesStillChanging;
+
+        if (allFilesStable) {
+          console.log("✅ All files appear to be fully uploaded");
+          break;
+        } else {
+          console.log("⏳ Files still uploading, continuing to monitor...");
+        }
+      }
+
+      attempts++;
+      if (attempts < 10) {
+        await new Promise((resolve) => setTimeout(resolve, 30000)); // Wait 30 seconds
+      }
+    }
+
+    if (!files || !files.data.files || files.data.files.length === 0) {
+      console.log("No audio files found after monitoring");
+      return { newFilesProcessed: false, filesProcessed: 0 };
+    }
+
+    console.log(
+      `📂 Found ${files.data.files.length} total files in meeting folder`
+    );
+
+    // Process each audio file (only M4A files)
+    const m4aFiles = files.data.files.filter(
+      (file: { name?: string; mimeType?: string }) => {
+        const isM4A =
+          file.name?.toLowerCase().endsWith(".m4a") ||
+          file.mimeType?.includes("audio");
+        const isAudioOnly =
+          file.name?.toLowerCase().includes("audio") ||
+          file.name?.toLowerCase().includes("audio_only");
+        console.log(
+          `🎵 Checking file: ${file.name} | isM4A: ${isM4A} | isAudioOnly: ${isAudioOnly}`
+        );
+        return isM4A && isAudioOnly;
+      }
+    );
+
+    console.log(`🎵 Found ${m4aFiles.length} M4A audio files to process`);
+
+    for (const file of m4aFiles) {
+      console.log(`📁 Processing M4A file: ${file.name}`);
+
+      // Check if summary already exists
+      const summaryName = file.name?.replace(/\.(m4a|mp4)$/, "_summary.txt");
+      const existingSummaries = await drive.files.list({
+        q: `name='${summaryName}' and '${file.parents?.[0]}' in parents`,
+        fields: "files(id,name)",
+      });
+
+      if (
+        existingSummaries.data.files &&
+        existingSummaries.data.files.length > 0
+      ) {
+        console.log(`⏭️ Summary already exists for ${file.name} - skipping`);
+        continue;
+      }
+
+      // Download the audio file with improved error handling
+      let audioBlob: Blob;
+      try {
+        console.log(`🔄 Downloading audio file: ${file.name} (ID: ${file.id})`);
+
+        // Use direct download URL with proper headers
+        const downloadUrl = `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`;
+        const audioResponse = await fetch(downloadUrl, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            Accept: "application/octet-stream",
+            "User-Agent": "Zyflow/1.0",
+          },
+        });
+
+        if (!audioResponse.ok) {
+          throw new Error(
+            `HTTP ${audioResponse.status}: ${audioResponse.statusText}`
+          );
+        }
+
+        // Check response headers
+        const contentType = audioResponse.headers.get("content-type");
+        const contentLength = audioResponse.headers.get("content-length");
+
+        console.log(
+          `📄 Response headers: Content-Type: ${contentType}, Content-Length: ${contentLength}`
+        );
+
+        // Get the blob with proper content type
+        audioBlob = await audioResponse.blob();
+
+        // Verify download completed successfully
+        if (audioBlob.size === 0) {
+          throw new Error("Downloaded file is empty");
+        }
+
+        console.log(
+          `✅ Successfully downloaded: ${file.name}, size: ${audioBlob.size} bytes`
+        );
+      } catch (downloadError) {
+        console.error(
+          `❌ Failed to download audio file ${file.name}:`,
+          downloadError
+        );
+        continue;
+      }
+      console.log(
+        `✅ Downloaded audio: ${file.name}, size: ${audioBlob.size} bytes, type: ${audioBlob.type}`
+      );
+
+      // Validate file size (OpenAI has a 25MB limit)
+      const maxSize = 25 * 1024 * 1024; // 25MB
+      if (audioBlob.size > maxSize) {
+        console.error(
+          `❌ Audio file too large: ${audioBlob.size} bytes (max: ${maxSize})`
+        );
+        continue;
+      }
+
+      if (audioBlob.size === 0) {
+        console.error(`❌ Audio file is empty: ${file.name}`);
+        continue;
+      }
+
+      // Determine correct MIME type based on file extension
+      let mimeType = audioBlob.type;
+      const fileName = file.name || "audio.mp4";
+
+      if (!mimeType || mimeType === "application/octet-stream") {
+        if (fileName.endsWith(".m4a")) {
+          mimeType = "audio/mp4";
+        } else if (fileName.endsWith(".mp3")) {
+          mimeType = "audio/mpeg";
+        } else if (fileName.endsWith(".wav")) {
+          mimeType = "audio/wav";
+        } else if (fileName.endsWith(".mp4")) {
+          mimeType = "audio/mp4";
+        } else {
+          mimeType = "audio/mp4"; // default
+        }
+      }
+
+      // Convert blob to File for OpenAI SDK with proper MIME type
+      const audioFile = new File([audioBlob], fileName, {
+        type: mimeType,
+      });
+
+      console.log(
+        `🎵 Preparing file for Whisper: ${fileName}, type: ${mimeType}, size: ${audioBlob.size}`
+      );
+
+      // Add file content verification
+      if (audioBlob.size < 1000) {
+        console.warn(
+          `⚠️ File seems very small (${audioBlob.size} bytes), might be corrupted`
+        );
+      }
+
+      // Send to OpenAI Whisper for transcription using SDK
+      let transcript: string;
+      try {
+        console.log(`🤖 Sending to OpenAI Whisper: ${fileName}`);
+        const transcription = await openai.audio.transcriptions.create({
+          file: audioFile,
+          model: "whisper-1",
+          language: "en",
+          temperature: 0.0, // More deterministic results
+          response_format: "text",
+          prompt:
+            "This is a Zoom meeting recording with business discussion, technical terms, and proper names.",
+        });
+        transcript = transcription;
+        console.log(`✅ Transcript generated: ${transcript.length} characters`);
+      } catch (error) {
+        console.error(`❌ Whisper transcription failed for ${file.name}:`);
+
+        if (error instanceof Error) {
+          console.error(`Error message: ${error.message}`);
+
+          // Check if it's a file format issue
+          if (
+            error.message.includes("Invalid file format") ||
+            error.message.includes("400")
+          ) {
+            console.error(`💡 Try converting ${fileName} to MP3 or WAV format`);
+            console.error(
+              `File details: size=${audioBlob.size}, type=${mimeType}`
+            );
+
+            // Try with a different approach - force MP3 MIME type
+            try {
+              console.log(`🔄 Retrying with MP3 MIME type...`);
+              const mp3File = new File(
+                [audioBlob],
+                fileName.replace(/\.[^.]+$/, ".mp3"),
+                {
+                  type: "audio/mpeg",
+                }
+              );
+
+              const retryTranscription =
+                await openai.audio.transcriptions.create({
+                  file: mp3File,
+                  model: "whisper-1",
+                  language: "en",
+                  temperature: 0.0,
+                  response_format: "text",
+                  prompt:
+                    "This is a Zoom meeting recording with business discussion, technical terms, and proper names.",
+                });
+
+              transcript = retryTranscription;
+              console.log(
+                `✅ Retry successful: ${transcript.length} characters`
+              );
+            } catch (retryError) {
+              console.error(
+                `❌ Retry also failed:`,
+                retryError instanceof Error ? retryError.message : retryError
+              );
+              continue;
+            }
+          } else {
+            console.error(`Full error:`, error);
+            continue;
+          }
+        } else {
+          console.error(`Unknown error type:`, error);
+          continue;
+        }
+      }
+
+      // Generate AI summary using SDK
+      let summary: string;
+      try {
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are a meeting summarizer. Create a concise, actionable summary.",
+            },
+            {
+              role: "user",
+              content: `Summarize this Zoom meeting transcript:\n\n${transcript}`,
+            },
+          ],
+        });
+        summary = completion.choices[0]?.message?.content || "";
+      } catch (error) {
+        console.error(`❌ Summary generation failed:`, error);
+        continue;
+      }
+
+      // Upload summary to Google Drive in the same folder
+      console.log(
+        `📄 Generated summary for ${file.name}: ${summary.length} characters`
+      );
+      console.log(`📁 Upload metadata:`, {
+        name: summaryName,
+        parents: file.parents,
+      });
+
+      const summaryBlob = new Blob([summary], { type: "text/plain" });
+      const metadata = {
+        name: summaryName || `${file.name}_summary.txt`,
+        parents: file.parents,
+      };
+
+      const formData2 = new FormData();
+      formData2.append("metadata", JSON.stringify(metadata));
+      formData2.append("file", summaryBlob);
+
+      const uploadResponse = await fetch(
+        "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: formData2,
+        }
+      );
+
+      if (uploadResponse.ok) {
+        const uploadResult = await uploadResponse.json();
+        console.log(
+          `✅ Summary uploaded to Drive: ${summaryName}`,
+          uploadResult
+        );
+        console.log(
+          `📍 Summary stored at: https://drive.google.com/file/d/${uploadResult.id}/view`
+        );
+        filesProcessed++;
+      } else {
+        const errorText = await uploadResponse.text();
+        console.error(`❌ Failed to upload summary for ${file.name}`, {
+          status: uploadResponse.status,
+          statusText: uploadResponse.statusText,
+          error: errorText,
+        });
+      }
+    }
+
+    console.log(
+      `🎯 Processing complete: ${filesProcessed} new files processed`
+    );
+    return { newFilesProcessed: filesProcessed > 0, filesProcessed };
+  } catch (error) {
+    console.error("Error processing Zoom audio files:", error);
+    return { newFilesProcessed: false, filesProcessed: 0 };
+  }
 }

@@ -98,7 +98,7 @@ const ActionButton = ({
     }
 
     try {
-      const response = await fetch("/api/test-email", {
+      const response = await fetch("/api/email", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

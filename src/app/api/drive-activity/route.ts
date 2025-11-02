@@ -15,6 +15,27 @@ export async function GET() {
       ngrokUri: process.env.NGROK_URI,
     });
 
+    // Validate required environment variables
+    if (
+      !process.env.GOOGLE_CLIENT_ID ||
+      !process.env.GOOGLE_CLIENT_SECRET ||
+      !process.env.OAUTH2_REDIRECT_URI ||
+      !process.env.NGROK_URI
+    ) {
+      return NextResponse.json(
+        {
+          message: "Missing required environment variables",
+          missing: {
+            GOOGLE_CLIENT_ID: !process.env.GOOGLE_CLIENT_ID,
+            GOOGLE_CLIENT_SECRET: !process.env.GOOGLE_CLIENT_SECRET,
+            OAUTH2_REDIRECT_URI: !process.env.OAUTH2_REDIRECT_URI,
+            NGROK_URI: !process.env.NGROK_URI,
+          },
+        },
+        { status: 500 }
+      );
+    }
+
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
@@ -52,12 +73,16 @@ export async function GET() {
         {
           message:
             "Google account not connected. Please connect your Google Drive first.",
+          action:
+            "Please go to connections page and reconnect your Google account with proper Drive permissions.",
         },
         { status: 400 }
       );
     }
 
     const accessToken = clerkResponse.data[0].token;
+    console.log("🔑 OAuth token obtained, length:", accessToken?.length || 0);
+
     oauth2Client.setCredentials({
       access_token: accessToken,
     });
@@ -66,6 +91,25 @@ export async function GET() {
       version: "v3",
       auth: oauth2Client,
     });
+
+    // Test Drive API access before creating listener
+    try {
+      console.log("🧪 Testing Drive API access...");
+      const testResponse = await drive.files.list({ pageSize: 1 });
+      console.log("✅ Drive API access confirmed");
+    } catch (testError) {
+      console.error("❌ Drive API test failed:", testError);
+      return NextResponse.json(
+        {
+          message: "Google Drive API access denied",
+          error:
+            testError instanceof Error ? testError.message : "Unknown error",
+          action:
+            "Please reconnect your Google account with Drive permissions.",
+        },
+        { status: 403 }
+      );
+    }
 
     const channelId = uuidv4();
 
@@ -96,6 +140,13 @@ export async function GET() {
       },
     });
 
+    console.log("📡 Drive changes.watch response:", {
+      status: listener.status,
+      statusText: listener.statusText,
+      resourceId: listener.data.resourceId,
+      expiration: listener.data.expiration,
+    });
+
     if (listener.status == 200) {
       //if listener created store its channel id in db
       const channelStored = await db.user.updateMany({
@@ -120,13 +171,52 @@ export async function GET() {
 
     return new NextResponse("Oops! something went wrong, try again");
   } catch (error) {
-    console.error("Error creating Google Drive listener:", error);
+    console.error("❌ Error creating Google Drive listener:", error);
+
+    // Provide more specific error messages based on the error type
+    let errorMessage = "Failed to create listener";
+    let statusCode = 500;
+    let actionAdvice = "";
+
+    if (error instanceof Error) {
+      if (
+        error.message.includes("403") ||
+        error.message.includes("Forbidden")
+      ) {
+        errorMessage = "Domain not verified for webhooks";
+        statusCode = 403;
+        actionAdvice =
+          "The ngrok domain needs to be verified in Google Cloud Console. Add 'bangled-trickly-buddy.ngrok-free.dev' to your verified domains.";
+      } else if (
+        error.message.includes("401") ||
+        error.message.includes("Unauthorized")
+      ) {
+        errorMessage = "OAuth token expired or insufficient permissions";
+        statusCode = 401;
+        actionAdvice =
+          "Please reconnect your Google account with proper Drive permissions.";
+      } else if (
+        error.message.includes("400") ||
+        error.message.includes("Bad Request")
+      ) {
+        errorMessage = "Invalid webhook configuration";
+        statusCode = 400;
+        actionAdvice =
+          "Check that the webhook URL is accessible and properly formatted.";
+      }
+    }
+
     return NextResponse.json(
       {
-        message: "Failed to create listener",
+        message: errorMessage,
         error: error instanceof Error ? error.message : "Unknown error",
+        action: actionAdvice,
+        debug: {
+          webhookUrl: `${process.env.NGROK_URI}/api/drive-activity/notification`,
+          timestamp: new Date().toISOString(),
+        },
       },
-      { status: 500 }
+      { status: statusCode }
     );
   }
 }
