@@ -57,17 +57,33 @@ export async function POST(req: Request) {
     oauth2Client.setCredentials({ access_token: clerkResponse.data[0].token });
     const drive = google.drive({ version: "v3", auth: oauth2Client });
 
-    // Find Zoom Recordings folder
-    const folderQuery = await drive.files.list({
-      q: "mimeType='application/vnd.google-apps.folder' and name='Zoom Recordings'",
+    // Find the specific Zoom backup folder structure
+    const backupFolders = await drive.files.list({
+      q: "mimeType='application/vnd.google-apps.folder' and name='crimsomemoon7@gmail.com_zBackup'",
+      fields: "files(id,name)",
       pageSize: 1,
-      fields: "files(id, name)",
     });
 
-    const zoomFolder = folderQuery.data.files?.[0];
+    if (!backupFolders.data.files || backupFolders.data.files.length === 0) {
+      return NextResponse.json({
+        message: "Zoom backup folder not found",
+        suggestion: "Files may not be uploaded yet, will retry later",
+      });
+    }
+
+    const zoomBackupFolder = backupFolders.data.files[0].id;
+
+    // Find the email folder inside it
+    const emailFolders = await drive.files.list({
+      q: `'${zoomBackupFolder}' in parents and mimeType='application/vnd.google-apps.folder' and name='crimsomemoon7@gmail.com'`,
+      fields: "files(id,name)",
+      pageSize: 1,
+    });
+
+    const zoomFolder = emailFolders.data.files?.[0];
     if (!zoomFolder) {
       return NextResponse.json({
-        message: "Zoom Recordings folder not found",
+        message: "Email folder not found inside backup folder",
         suggestion: "Files may not be uploaded yet, will retry later",
       });
     }

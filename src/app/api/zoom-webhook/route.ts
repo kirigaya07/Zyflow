@@ -66,26 +66,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(response);
     }
 
-    // Verify Zoom signature for actual webhook events (not validation)
-    // Note: For webhook-only apps, signature verification is optional
-    // Commenting out for now to allow events to process
-    /*
-    if (zoomSignature && process.env.ZOOM_WEBHOOK_TOKEN && zoomTimestamp) {
-      const message = `v0:${zoomTimestamp}:${JSON.stringify(body)}`;
-      const hashForVerify = crypto
-        .createHmac("sha256", process.env.ZOOM_WEBHOOK_TOKEN)
-        .update(message)
-        .digest("hex");
-      const expectedSignature = `v0=${hashForVerify}`;
-
-      if (zoomSignature !== expectedSignature) {
-        console.error("❌ Invalid Zoom signature");
-        return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-      }
-      console.log("✅ Zoom signature verified");
-    }
-    */
-
     // Handle recording events
     if (
       event === "recording.transcript_completed" ||
@@ -101,102 +81,45 @@ export async function POST(req: NextRequest) {
       console.log(`🆔 Meeting ID: ${meetingId}`);
       console.log(`📁 Recording files: ${recording_files?.length || 0}`);
 
-      // Find transcript file
-      const transcriptFile = recording_files?.find(
-        (file: { file_type: string; id: string; download_url: string }) =>
-          file.file_type === "TRANSCRIPT"
-      );
+      // Find audio file (prioritize M4A over MP4)
+      const audioFile =
+        recording_files?.find(
+          (file: { file_type: string; id: string; download_url: string }) =>
+            file.file_type === "M4A"
+        ) ||
+        recording_files?.find(
+          (file: { file_type: string; id: string; download_url: string }) =>
+            file.file_type === "MP4"
+        );
 
-      // Find audio file
-      const audioFile = recording_files?.find(
-        (file: { file_type: string; id: string; download_url: string }) =>
-          file.file_type === "MP4" || file.file_type === "M4A"
-      );
-
-      if (!transcriptFile && !audioFile) {
-        console.error("❌ No transcript or audio file found");
+      if (!audioFile) {
+        console.error("❌ No audio file found for processing");
         return NextResponse.json(
           {
-            message: "No transcript or audio file available",
+            message: "No audio file available for processing",
           },
           { status: 200 }
         );
       }
 
-      // Start automated processing with delayed checks
-      console.log("📤 Zoom files will be uploaded to Drive automatically");
       console.log(
-        `⏳ Starting delayed file check system for meeting: ${topic} (ID: ${meetingId})`
+        `🎵 Found audio file: ${audioFile.file_type} (${audioFile.file_size} bytes)`
       );
 
-      // Schedule delayed checks for Zoom files in Drive
-      const scheduleDelayedCheck = async (delayMinutes: number) => {
-        console.log(
-          `⏰ Scheduling check in ${delayMinutes} minutes for meeting: ${topic} (${meetingId})`
-        );
-
-        setTimeout(async () => {
-          try {
-            console.log(
-              `� Checking for Zoom files after ${delayMinutes} minutes...`
-            );
-
-            const response = await fetch(
-              `${
-                process.env.NGROK_URI || "https://localhost:3000"
-              }/api/check-zoom-files`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "User-Agent": "ZoomWebhook-DelayedCheck",
-                },
-                body: JSON.stringify({
-                  meetingId,
-                  topic,
-                  meetingTimestamp: new Date().toISOString(),
-                  delayMinutes,
-                  recordingFiles: recording_files,
-                }),
-              }
-            );
-
-            const result = await response.json();
-            console.log(
-              `📊 [${topic}] Delayed check result after ${delayMinutes} minutes:`,
-              result
-            );
-
-            if (result.mediaFiles && result.mediaFiles.length > 0) {
-              console.log(
-                `✅ [${topic}] Found ${result.mediaFiles.length} media files after ${delayMinutes} minutes - processing should begin!`
-              );
-            } else {
-              console.log(
-                `⏳ [${topic}] No media files found yet after ${delayMinutes} minutes`
-              );
-            }
-          } catch (error) {
-            console.error(
-              `❌ [${topic}] Error in delayed check after ${delayMinutes} minutes:`,
-              error
-            );
-          }
-        }, delayMinutes * 60 * 1000);
-      };
-
-      // Schedule checks at 2, 5, and 10 minutes
-      scheduleDelayedCheck(2);
-      scheduleDelayedCheck(5);
-      scheduleDelayedCheck(10);
+      // Since your Zoom marketplace app automatically uploads files to Drive,
+      // we just wait for the Drive webhook to process the files
+      console.log("📤 Zoom files will be uploaded to Drive automatically");
+      console.log("⏳ Waiting for Drive webhook to process audio files...");
 
       return NextResponse.json({
-        message:
-          "Zoom webhook processed - delayed file checks scheduled for this meeting only",
+        message: "Zoom webhook processed - waiting for automatic Drive upload",
         meetingId,
         topic,
-        checksScheduled: ["2 minutes", "5 minutes", "10 minutes"],
-        recordingFilesCount: recording_files?.length || 0,
+        audioFile: {
+          type: audioFile.file_type,
+          size: audioFile.file_size,
+        },
+        note: "Files will be processed automatically when they appear in Drive",
       });
     }
 

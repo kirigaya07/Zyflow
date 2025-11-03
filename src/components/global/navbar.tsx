@@ -10,7 +10,7 @@ const Navbar = async () => {
   return (
     <header className="fixed right-0 left-0 top-0 py-4 px-4 bg-black/40 backdrop-blur-lg z-[100] flex items-center border-b-[1px] border-neutral-900 justify-between">
       <aside className="flex items-center gap-[2px]">
-        <p className="text-3xl font-bold">Fu</p>
+        <p className="text-3xl font-bold">Z</p>
         <Image
           src="/fuzzieLogo.png"
           width={15}
@@ -18,7 +18,7 @@ const Navbar = async () => {
           alt="fuzzie logo"
           className="shadow-sm"
         />
-        <p className="text-3xl font-bold">zie</p>
+        <p className="text-3xl font-bold">Flow</p>
       </aside>
       <nav
         className="absolute left-[50%] top-[50%] transform translate-x-[-50%] translate-y-[-50%] hidden md:block"
@@ -42,22 +42,22 @@ const Navbar = async () => {
               Pricing
             </Link>
           </li>
-          <li>
+          {/* <li>
             <Link
               href="/clients"
               className="hover:text-blue-400 transition-colors"
             >
               Clients
             </Link>
-          </li>
-          <li>
+          </li> */}
+          {/* <li>
             <Link
               href="/resources"
               className="hover:text-blue-400 transition-colors"
             >
               Resources
             </Link>
-          </li>
+          </li> */}
           <li>
             <Link
               href="/docs"
@@ -89,15 +89,17 @@ const Navbar = async () => {
         {user ? (
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-400">
-              {user.firstName || user.emailAddresses?.[0]?.emailAddress || 'User'}
+              {user.firstName ||
+                user.emailAddresses?.[0]?.emailAddress ||
+                "User"}
             </span>
-            <UserButton 
-              afterSignOutUrl="/" 
+            <UserButton
+              afterSignOutUrl="/"
               appearance={{
                 elements: {
                   avatarBox: "w-8 h-8",
-                  userButtonPopover: "z-[200]"
-                }
+                  userButtonPopover: "z-[200]",
+                },
               }}
             />
           </div>

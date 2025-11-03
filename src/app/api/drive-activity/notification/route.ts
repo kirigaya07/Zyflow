@@ -12,6 +12,15 @@ import OpenAI from "openai";
 // In-memory deduplication store
 const processedMessages = new Set<string>();
 const recentActivity = new Set<string>();
+const processedFiles = new Set<string>(); // Track processed files to prevent duplicates
+
+// Clean up old entries periodically to prevent memory leaks
+setInterval(() => {
+  if (processedFiles.size > 1000) {
+    processedFiles.clear();
+    console.log("🧹 Cleared processed files cache");
+  }
+}, 60000); // Clean every minute
 
 export async function POST() {
   const headersList = await headers();
@@ -61,8 +70,7 @@ export async function POST() {
     recentActivity.delete(resourceId);
   }, 5000);
 
-  console.log("🔴 Drive webhook received", headerSnapshot);
-  console.log("📋 All Google Headers:", Object.keys(headerSnapshot));
+  // Google Drive webhook received
 
   let channelResourceId: string | undefined;
   if (headerSnapshot["x-goog-resource-id"]) {
@@ -319,29 +327,51 @@ async function processZoomAudioFiles(
 
     const drive = google.drive({ version: "v3", auth: oauth2Client });
 
-    // Find the "Zoom Recordings" folder
-    let zoomRecordingsFolder: string | null = null;
-    const folders = await drive.files.list({
-      q: "mimeType='application/vnd.google-apps.folder' and name='Zoom Recordings'",
+    // Find the specific Zoom backup folder structure
+    // Path: crimsomemoon7@gmail.com_zBackup > crimsomemoon7@gmail.com
+    let zoomBackupFolder: string | null = null;
+    let userEmailFolder: string | null = null;
+
+    // First, find the crimsomemoon7@gmail.com_zBackup folder
+    const backupFolders = await drive.files.list({
+      q: "mimeType='application/vnd.google-apps.folder' and name='crimsomemoon7@gmail.com_zBackup'",
       fields: "files(id,name)",
       pageSize: 1,
     });
 
-    if (folders.data.files && folders.data.files.length > 0) {
-      zoomRecordingsFolder = folders.data.files[0].id || null;
-      console.log("📁 Found Zoom Recordings folder:", zoomRecordingsFolder);
-    } else {
-      console.log("⚠️ Zoom Recordings folder not found");
+    if (backupFolders.data.files && backupFolders.data.files.length > 0) {
+      zoomBackupFolder = backupFolders.data.files[0].id || null;
+      console.log("📁 Found Zoom backup folder:", zoomBackupFolder);
+
+      // Now find the crimsomemoon7@gmail.com folder inside it
+      const emailFolders = await drive.files.list({
+        q: `'${zoomBackupFolder}' in parents and mimeType='application/vnd.google-apps.folder' and name='crimsomemoon7@gmail.com'`,
+        fields: "files(id,name)",
+        pageSize: 1,
+      });
+
+      if (emailFolders.data.files && emailFolders.data.files.length > 0) {
+        userEmailFolder = emailFolders.data.files[0].id || null;
+        console.log("📁 Found user email folder:", userEmailFolder);
+      }
+    }
+
+    if (!userEmailFolder) {
+      console.log("⚠️ Zoom backup folder structure not found");
       return { newFilesProcessed: false, filesProcessed: 0 };
     }
 
-    // Find all meeting subfolders
+    // Find all meeting subfolders in the email folder
     const meetingFolders = await drive.files.list({
-      q: `'${zoomRecordingsFolder}' in parents and mimeType='application/vnd.google-apps.folder'`,
-      fields: "files(id,name)",
+      q: `'${userEmailFolder}' in parents and mimeType='application/vnd.google-apps.folder'`,
+      fields: "files(id,name,modifiedTime)",
       orderBy: "modifiedTime desc",
       pageSize: 10,
     });
+
+    console.log(
+      `📂 Found ${meetingFolders.data.files?.length || 0} meeting folders`
+    );
 
     // Get the most recent meeting folder
     const mostRecentMeeting = meetingFolders.data.files?.[0];
@@ -454,20 +484,23 @@ async function processZoomAudioFiles(
     for (const file of m4aFiles) {
       console.log(`📁 Processing M4A file: ${file.name}`);
 
-      // Check if summary already exists
-      const summaryName = file.name?.replace(/\.(m4a|mp4)$/, "_summary.txt");
-      const existingSummaries = await drive.files.list({
-        q: `name='${summaryName}' and '${file.parents?.[0]}' in parents`,
-        fields: "files(id,name)",
-      });
+      // Create unique identifier for this file
+      const fileIdentifier = `${file.id}-${file.name}`;
 
-      if (
-        existingSummaries.data.files &&
-        existingSummaries.data.files.length > 0
-      ) {
-        console.log(`⏭️ Summary already exists for ${file.name} - skipping`);
+      // Check if we've already processed this exact file recently
+      if (processedFiles.has(fileIdentifier)) {
+        console.log(
+          `⏭️ File already processed recently: ${file.name} - skipping`
+        );
         continue;
       }
+
+      // Add to processed files immediately to prevent concurrent processing
+      processedFiles.add(fileIdentifier);
+      console.log(`🔄 Processing file: ${file.name} (first time processing)`);
+
+      // Check if summary already exists
+      const summaryName = file.name?.replace(/\.(m4a|mp4)$/, "_summary.txt");
 
       // Download the audio file with improved error handling
       let audioBlob: Blob;
@@ -665,24 +698,137 @@ async function processZoomAudioFiles(
         continue;
       }
 
-      // Upload summary to Google Drive in the same folder
+      // Create or find summary folder with the same name as the meeting folder
       console.log(
         `📄 Generated summary for ${file.name}: ${summary.length} characters`
       );
-      console.log(`📁 Upload metadata:`, {
-        name: summaryName,
-        parents: file.parents,
+
+      const meetingFolderName = mostRecentMeeting.name;
+      const summaryFolderName = `summary`;
+
+      // Check if summary folder already exists in userEmailFolder
+      let summaryFolderId: string | null = null;
+      const existingSummaryFolders = await drive.files.list({
+        q: `'${userEmailFolder}' in parents and mimeType='application/vnd.google-apps.folder' and name='${summaryFolderName}'`,
+        fields: "files(id,name)",
+        pageSize: 1,
       });
 
-      const summaryBlob = new Blob([summary], { type: "text/plain" });
+      if (
+        existingSummaryFolders.data.files &&
+        existingSummaryFolders.data.files.length > 0
+      ) {
+        summaryFolderId = existingSummaryFolders.data.files[0].id || null;
+        console.log(`📁 Found existing summary folder: ${summaryFolderId}`);
+      } else {
+        // Create summary folder
+        const summaryFolderMetadata = {
+          name: summaryFolderName,
+          parents: [userEmailFolder],
+          mimeType: "application/vnd.google-apps.folder",
+        };
+
+        const createFolderResponse = await fetch(
+          "https://www.googleapis.com/drive/v3/files",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(summaryFolderMetadata),
+          }
+        );
+
+        if (createFolderResponse.ok) {
+          const folderResult = await createFolderResponse.json();
+          summaryFolderId = folderResult.id;
+          console.log(`✅ Created summary folder: ${summaryFolderId}`);
+        } else {
+          console.error(`❌ Failed to create summary folder`);
+          summaryFolderId = userEmailFolder; // Fallback to user email folder
+        }
+      }
+
+      // Now check if meeting-specific summary folder exists inside summary folder
+      let meetingSummaryFolderId: string | null = null;
+      // Escape single quotes in meeting folder name for Google Drive API query
+      const escapedMeetingFolderName =
+        meetingFolderName?.replace(/'/g, "\\'") || meetingFolderName;
+      const existingMeetingFolders = await drive.files.list({
+        q: `'${summaryFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and name='${escapedMeetingFolderName}'`,
+        fields: "files(id,name)",
+        pageSize: 1,
+      });
+
+      if (
+        existingMeetingFolders.data.files &&
+        existingMeetingFolders.data.files.length > 0
+      ) {
+        meetingSummaryFolderId =
+          existingMeetingFolders.data.files[0].id || null;
+        console.log(
+          `📁 Found existing meeting summary folder: ${meetingSummaryFolderId}`
+        );
+      } else {
+        // Create meeting-specific summary folder
+        const meetingFolderMetadata = {
+          name: meetingFolderName,
+          parents: [summaryFolderId],
+          mimeType: "application/vnd.google-apps.folder",
+        };
+
+        const createMeetingFolderResponse = await fetch(
+          "https://www.googleapis.com/drive/v3/files",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(meetingFolderMetadata),
+          }
+        );
+
+        if (createMeetingFolderResponse.ok) {
+          const meetingFolderResult = await createMeetingFolderResponse.json();
+          meetingSummaryFolderId = meetingFolderResult.id;
+          console.log(
+            `✅ Created meeting summary folder: ${meetingSummaryFolderId}`
+          );
+        } else {
+          console.error(`❌ Failed to create meeting summary folder`);
+          meetingSummaryFolderId = summaryFolderId; // Fallback to summary folder
+        }
+      }
+
+      console.log(`📁 Upload metadata:`, {
+        name: summaryName,
+        parents: [meetingSummaryFolderId],
+      });
+
+      // Create text file with explicit content type
+      const summaryBlob = new Blob([summary], {
+        type: "text/plain; charset=utf-8",
+      });
       const metadata = {
         name: summaryName || `${file.name}_summary.txt`,
-        parents: file.parents,
+        parents: [meetingSummaryFolderId],
+        mimeType: "text/plain",
       };
 
       const formData2 = new FormData();
-      formData2.append("metadata", JSON.stringify(metadata));
-      formData2.append("file", summaryBlob);
+      formData2.append(
+        "metadata",
+        new Blob([JSON.stringify(metadata)], {
+          type: "application/json",
+        })
+      );
+      formData2.append(
+        "file",
+        summaryBlob,
+        summaryName || `${file.name}_summary.txt`
+      );
 
       const uploadResponse = await fetch(
         "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
@@ -703,6 +849,9 @@ async function processZoomAudioFiles(
         );
         console.log(
           `📍 Summary stored at: https://drive.google.com/file/d/${uploadResult.id}/view`
+        );
+        console.log(
+          `📂 Path: crimsomemoon7@gmail.com_zBackup > crimsomemoon7@gmail.com > summary > ${meetingFolderName} > ${summaryName}`
         );
         filesProcessed++;
       } else {
