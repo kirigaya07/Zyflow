@@ -7,12 +7,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import Link from "next/link";
 import Image from "next/image";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { onFlowPublish } from "../_actions/workflow-connections";
 import { toast } from "sonner";
+import { LoadingLink } from "@/components/global/loading-link";
 // import { toast } from "sonner";
 // import { onFlowPublish } from "../_actions/workflow-connections";
 
@@ -35,7 +35,7 @@ const Workflow = ({ description, id, name, publish }: Props) => {
   return (
     <Card className="flex w-full items-center justify-between min-h-[120px]">
       <CardHeader className="flex-1 py-0">
-        <Link href={`/workflows/editor/${id}`} className="block">
+        <LoadingLink href={`/workflows/editor/${id}`} className="block">
           <div className="flex flex-row gap-3 mb-4">
             <Image
               src="/googleDrive.png"
@@ -63,7 +63,7 @@ const Workflow = ({ description, id, name, publish }: Props) => {
             <CardTitle className="text-xl mb-2">{name}</CardTitle>
             <CardDescription className="text-sm">{description}</CardDescription>
           </div>
-        </Link>
+        </LoadingLink>
       </CardHeader>
       <div className="flex flex-col items-center justify-center gap-2 px-6 py-0 min-w-[80px]">
         <Label

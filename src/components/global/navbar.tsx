@@ -1,9 +1,9 @@
 import Image from "next/image";
-import Link from "next/link";
 import React from "react";
 import { MenuIcon } from "lucide-react";
 import { currentUser } from "@clerk/nextjs/server";
 import { UserButton } from "@clerk/nextjs";
+import { LoadingLink } from "./loading-link";
 
 const Navbar = async () => {
   const user = await currentUser();
@@ -27,20 +27,20 @@ const Navbar = async () => {
       >
         <ul className="flex items-center gap-4 list-none">
           <li>
-            <Link
+            <LoadingLink
               href="/products"
               className="hover:text-blue-400 transition-colors"
             >
               Products
-            </Link>
+            </LoadingLink>
           </li>
           <li>
-            <Link
+            <LoadingLink
               href="/pricing"
               className="hover:text-blue-400 transition-colors"
             >
               Pricing
-            </Link>
+            </LoadingLink>
           </li>
           {/* <li>
             <Link
@@ -59,25 +59,25 @@ const Navbar = async () => {
             </Link>
           </li> */}
           <li>
-            <Link
+            <LoadingLink
               href="/docs"
               className="hover:text-blue-400 transition-colors"
             >
               Documentation
-            </Link>
+            </LoadingLink>
           </li>
           <li>
-            <Link
+            <LoadingLink
               href="/enterprise"
               className="hover:text-blue-400 transition-colors"
             >
               Enterprise
-            </Link>
+            </LoadingLink>
           </li>
         </ul>
       </nav>
       <aside className="flex items-center gap-4">
-        <Link
+        <LoadingLink
           href="/dashboard"
           className="relative inline-flex h-10 overflow-hidden rounded-full p-[2px] focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50"
         >
@@ -85,7 +85,7 @@ const Navbar = async () => {
           <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-slate-950 px-3 py-1 text-sm font-medium text-white backdrop-blur-3xl">
             {user ? "Dashboard" : "Get Started"}
           </span>
-        </Link>
+        </LoadingLink>
         {user ? (
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-400">

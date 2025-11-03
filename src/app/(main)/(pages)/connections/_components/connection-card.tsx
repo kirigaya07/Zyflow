@@ -3,7 +3,7 @@ import { ConnectionTypes } from "@/lib/types";
 import React from "react";
 import { Card } from "@/components/ui/card";
 import Image from "next/image";
-import Link from "next/link";
+import { LoadingLink } from "@/components/global/loading-link";
 
 type Props = {
   type: ConnectionTypes;
@@ -49,7 +49,7 @@ const ConnectionCard = ({
               Connected
             </div>
           ) : (
-            <Link
+            <LoadingLink
               href={
                 title == "Discord"
                   ? process.env.NEXT_PUBLIC_DISCORD_REDIRECT!
@@ -71,7 +71,7 @@ const ConnectionCard = ({
               className="rounded-lg bg-primary px-4 py-2 font-bold text-primary-foreground transition-colors hover:bg-primary/90"
             >
               Connect
-            </Link>
+            </LoadingLink>
           )}
         </div>
       </div>

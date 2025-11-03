@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ThemeProvider } from "@/providers/theme-provider";
+import { LoadingProvider } from "@/providers/loading-provider";
 import { DM_Sans } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
@@ -28,11 +29,12 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            {" "}
-            <ModalProvider>
-              {children}
-              <Toaster />
-            </ModalProvider>
+            <LoadingProvider>
+              <ModalProvider>
+                {children}
+                <Toaster />
+              </ModalProvider>
+            </LoadingProvider>
           </ThemeProvider>
         </body>
       </html>

@@ -1,5 +1,4 @@
 "use client";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
 import {
@@ -8,6 +7,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { LoadingLink } from "@/components/global/loading-link";
 import { menuOptions } from "@/lib/constants";
 import clsx from "clsx";
 import { Separator } from "@/components/ui/separator";
@@ -24,18 +24,18 @@ const MenuOptions = () => {
       aria-label="Sidebar navigation"
     >
       <div className="flex items-center justify-center flex-col gap-8">
-        <Link
+        <LoadingLink
           className="flex font-bold flex-row text-xl hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
           href="/"
         >
           Zyflow
-        </Link>
+        </LoadingLink>
         <TooltipProvider>
           <div className="flex flex-col gap-2">
             {menuOptions.map((menuItem) => (
               <Tooltip key={menuItem.name} delayDuration={0}>
                 <TooltipTrigger asChild>
-                  <Link
+                  <LoadingLink
                     href={menuItem.href}
                     className={clsx(
                       "group h-8 w-8 flex items-center justify-center scale-110 rounded-lg p-1 cursor-pointer transition-all duration-200",
@@ -46,10 +46,9 @@ const MenuOptions = () => {
                           pathName !== menuItem.href,
                       }
                     )}
-                    aria-label={menuItem.name}
                   >
                     <menuItem.Component selected={pathName === menuItem.href} />
-                  </Link>
+                  </LoadingLink>
                 </TooltipTrigger>
                 <TooltipContent
                   side="right"
