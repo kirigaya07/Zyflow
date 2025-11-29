@@ -1,3 +1,10 @@
+/**
+ * Application Constants
+ *
+ * This file contains all static configuration data used throughout the Zyflow application.
+ * Includes navigation menus, product showcases, editor configurations, and connection definitions.
+ */
+
 import Category from "@/components/icons/category";
 import Logs from "@/components/icons/clipboard";
 import Templates from "@/components/icons/cloud_download";
@@ -7,10 +14,19 @@ import Settings from "@/components/icons/settings";
 import Workflows from "@/components/icons/workflows";
 import { Connection } from "./types";
 
+/**
+ * Client portfolio/testimonial images configuration.
+ * Generates an array of client image references for display purposes.
+ */
 export const clients = [...new Array(10)].map((client, index) => ({
   href: `/${index + 1}.png`,
 }));
 
+/**
+ * Product showcase configuration for the landing page.
+ * Contains featured products and services with their respective links and thumbnails.
+ * Used to display partner companies and successful integrations.
+ */
 export const products = [
   {
     title: "Moonbeam",
@@ -92,6 +108,11 @@ export const products = [
   },
 ];
 
+/**
+ * Main navigation menu configuration for the application sidebar.
+ * Defines the primary navigation items with their corresponding icons and routes.
+ * Each menu item includes a display name, icon component, and route path.
+ */
 export const menuOptions = [
   { name: "Dashboard", Component: Home, href: "/dashboard" },
   { name: "Workflows", Component: Workflows, href: "/workflows" },
@@ -102,6 +123,15 @@ export const menuOptions = [
   { name: "Logs", Component: Logs, href: "/logs" },
 ];
 
+/**
+ * Editor canvas card type definitions for workflow automation.
+ * Defines all available node types that can be used in the workflow editor.
+ * Each card type includes a description and classification (Action/Trigger).
+ *
+ * Card Types:
+ * - Trigger: Events that start a workflow (e.g., file changes, webhooks)
+ * - Action: Operations performed during workflow execution (e.g., send email, create files)
+ */
 export const EditorCanvasDefaultCardTypes = {
   Email: { description: "Send and email to a user", type: "Action" },
   Zoom: {
@@ -151,6 +181,19 @@ export const EditorCanvasDefaultCardTypes = {
   },
 };
 
+/**
+ * Available connection integrations configuration.
+ * Defines all supported third-party service integrations with their metadata.
+ *
+ * Each connection includes:
+ * - title: Display name of the service
+ * - description: Brief explanation of the integration capabilities
+ * - image: Icon/logo path for the service
+ * - connectionKey: Reference key for state management
+ * - accessTokenKey: Token field name for authentication (optional)
+ * - alwaysTrue: Whether connection is always considered active (optional)
+ * - slackSpecial: Special handling flag for Slack integration (optional)
+ */
 export const CONNECTIONS: Connection[] = [
   {
     title: "Google Drive",

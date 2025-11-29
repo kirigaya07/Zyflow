@@ -1,9 +1,42 @@
 "use server";
 
+/**
+ * Discord Connection Actions Module
+ *
+ * This module handles Discord webhook integration functionality:
+ * - OAuth callback processing for Discord connections
+ * - Webhook creation and management in the database
+ * - Message posting to Discord channels via webhooks
+ * - Connection status retrieval and validation
+ *
+ * Features:
+ * - Duplicate webhook prevention
+ * - Error handling for webhook operations
+ * - Connection record management
+ * - Message posting with error feedback
+ */
+
 import { db } from "@/lib/db";
 import { currentUser } from "@clerk/nextjs/server";
 import axios from "axios";
 
+/**
+ * Processes Discord OAuth callback and creates webhook connection.
+ *
+ * This function:
+ * - Validates webhook parameters from Discord OAuth
+ * - Prevents duplicate webhook creation for the same channel
+ * - Creates database records for webhook and connection
+ * - Handles existing webhook scenarios
+ *
+ * @param channel_id - Discord channel ID where webhook will operate
+ * @param webhook_id - Unique Discord webhook identifier
+ * @param webhook_name - Display name for the webhook
+ * @param webhook_url - Discord webhook endpoint URL
+ * @param id - User ID from Clerk authentication
+ * @param guild_name - Discord server (guild) name
+ * @param guild_id - Discord server (guild) ID
+ */
 export const onDiscordConnect = async (
   channel_id: string,
   webhook_id: string,
@@ -107,6 +140,11 @@ export const onDiscordConnect = async (
   }
 };
 
+/**
+ * Retrieves the Discord webhook connection details for the current user.
+ *
+ * @returns Discord webhook data (URL, name, guild name) or null if not found
+ */
 export const getDiscordConnectionUrl = async () => {
   const user = await currentUser();
   if (user) {
@@ -125,6 +163,19 @@ export const getDiscordConnectionUrl = async () => {
   }
 };
 
+/**
+ * Posts content to a Discord channel via webhook.
+ *
+ * This function:
+ * - Validates content before posting
+ * - Handles webhook API communication
+ * - Provides detailed error feedback
+ * - Detects deleted/invalid webhooks
+ *
+ * @param content - Message content to post to Discord
+ * @param url - Discord webhook URL endpoint
+ * @returns Response object with success/failure status and error details
+ */
 export const postContentToWebHook = async (content: string, url: string) => {
   console.log("Posting to Discord webhook:", url);
   console.log("Content:", content);

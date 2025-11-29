@@ -1,3 +1,21 @@
+/**
+ * Hero Parallax Component
+ *
+ * This component creates an immersive parallax scrolling experience with product showcase:
+ * - Multi-row product grid with differential scroll speeds
+ * - 3D perspective transformations based on scroll position
+ * - Spring-based animations for smooth, natural motion
+ * - Responsive design with mobile-optimized layouts
+ *
+ * Features:
+ * - Three-row product grid with staggered parallax effects
+ * - Scroll-triggered 3D rotations and translations
+ * - Spring physics for realistic motion feel
+ * - Opacity transitions for depth perception
+ * - Interactive product cards with hover effects
+ * - Performance-optimized with Framer Motion transforms
+ */
+
 "use client";
 import React from "react";
 import {
@@ -10,6 +28,30 @@ import {
 import Image from "next/image";
 import { LoadingLink } from "./loading-link";
 
+/**
+ * Hero parallax component with scroll-based 3D transformations and product showcase.
+ *
+ * This component provides:
+ * - Multi-row parallax scrolling with different speeds per row
+ * - 3D perspective effects with rotation and translation
+ * - Spring-based animations for natural, bouncy motion
+ * - Responsive product grid with hover interactions
+ *
+ * Layout structure:
+ * - Header section with title and description
+ * - Three rows of products with parallax scroll effects
+ * - Each row moves at different speeds for depth illusion
+ *
+ * Animation behavior:
+ * - First and third rows translate in opposite directions
+ * - Second row remains stationary for visual anchor
+ * - 3D rotations create perspective depth effects
+ * - Opacity changes enhance depth perception
+ * - Spring physics provide natural motion feel
+ *
+ * @param products - Array of product objects with title, link, and thumbnail
+ * @returns JSX.Element - Parallax hero section with animated product showcase
+ */
 export const HeroParallax = ({
   products,
 }: {
@@ -19,17 +61,22 @@ export const HeroParallax = ({
     thumbnail: string;
   }[];
 }) => {
+  // Split products into three rows for parallax effect
   const firstRow = products.slice(0, 5);
   const secondRow = products.slice(5, 10);
   const thirdRow = products.slice(10, 15);
   const ref = React.useRef(null);
+
+  // Scroll progress tracking for the parallax container
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start start", "end start"],
   });
 
+  // Spring configuration for natural, bouncy animations
   const springConfig = { stiffness: 300, damping: 30, bounce: 100 };
 
+  // Transform values with spring physics for smooth animations
   const translateX = useSpring(
     useTransform(scrollYProgress, [0, 1], [0, 1000]),
     springConfig

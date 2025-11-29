@@ -1,8 +1,43 @@
 "use server";
 
+/**
+ * Google Drive Connection Actions Module
+ *
+ * This module handles Google Drive integration functionality:
+ * - OAuth token management with Clerk
+ * - Google Drive API authentication
+ * - File metadata retrieval and listing
+ * - Drive API client configuration
+ *
+ * Features:
+ * - Automatic OAuth token retrieval from Clerk
+ * - Google Drive API v3 integration
+ * - Error handling for authentication failures
+ * - File listing and metadata access
+ */
+
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { google } from "googleapis";
 
+/**
+ * Retrieves file metadata from user's Google Drive.
+ *
+ * This function:
+ * - Authenticates user via Clerk OAuth tokens
+ * - Creates Google Drive API client
+ * - Fetches file list from user's Drive
+ * - Returns file metadata for workflow integration
+ *
+ * @returns File metadata from Google Drive or error message
+ *
+ * @example
+ * ```typescript
+ * const files = await getFileMetaData();
+ * if (files && !files.message) {
+ *   console.log('Drive files:', files.files);
+ * }
+ * ```
+ */
 export const getFileMetaData = async () => {
   const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,

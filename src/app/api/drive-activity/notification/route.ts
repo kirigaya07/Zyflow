@@ -240,7 +240,7 @@ export async function POST() {
                   "https://api.cron-job.org/jobs",
                   {
                     job: {
-                      url: `${process.env.NGROK_URI}?flow_id=${flow.id}`,
+                      url: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NGROK_URI}/api/flow?flow_id=${flow.id}`,
                       enabled: "true",
                       schedule: {
                         timezone: "Europe/Istanbul",

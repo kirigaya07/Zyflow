@@ -1,19 +1,56 @@
 "use client";
+
+/**
+ * Connection Card Component
+ *
+ * This component renders individual service connection cards in the connections page.
+ * Displays connection status and provides OAuth redirect links for service authorization.
+ *
+ * Features:
+ * - Visual connection status indicators
+ * - Service-specific OAuth redirect handling
+ * - Error handling for missing icons
+ * - Responsive design with proper spacing
+ * - Loading states during connection process
+ */
+
 import { ConnectionTypes } from "@/lib/types";
 import React from "react";
 import { Card } from "@/components/ui/card";
 import Image from "next/image";
 import { LoadingLink } from "@/components/global/loading-link";
 
+/**
+ * Props interface for the ConnectionCard component.
+ */
 type Props = {
+  /** Type of connection service */
   type: ConnectionTypes;
+  /** Path to service icon/logo */
   icon: string;
+  /** Display title of the service */
   title: ConnectionTypes;
+  /** Brief description of the service integration */
   description: string;
+  /** Optional callback function for custom actions */
   callback?: () => void;
+  /** Object containing connection status for all services */
   connected: Record<string, unknown>;
 };
 
+/**
+ * ConnectionCard component that displays service integration status and connection options.
+ *
+ * This component:
+ * - Shows service icon, title, and description
+ * - Displays connection status with visual indicators
+ * - Provides appropriate OAuth redirect links
+ * - Handles image loading errors gracefully
+ * - Uses loading links for better UX during redirects
+ *
+ * @param props - Component props containing service information and connection status
+ * @returns JSX.Element - Rendered connection card
+ */
 const ConnectionCard = ({
   description,
   type,

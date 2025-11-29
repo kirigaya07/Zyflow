@@ -1,3 +1,23 @@
+/**
+ * Main Workflow Editor Canvas Component
+ *
+ * This is the core visual editor for creating and editing workflow automations:
+ * - Provides drag-and-drop interface for building workflows
+ * - Manages workflow nodes (triggers, actions, conditions, etc.)
+ * - Handles connections between workflow elements
+ * - Integrates with React Flow for visual node editing
+ * - Split-panel layout with canvas and configuration sidebar
+ *
+ * Features:
+ * - Visual workflow builder with node-based interface
+ * - Real-time workflow state management
+ * - Drag-and-drop node creation from sidebar
+ * - Node connection management with validation
+ * - Auto-save and loading of workflow configurations
+ * - Responsive design with resizable panels
+ * - Loading states and error handling
+ */
+
 "use client";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -31,12 +51,43 @@ import FlowInstance from "./flow-instance";
 import EditorCanvasSidebar from "./editor-canvas-sidebar";
 import { onGetNodesEdges } from "../../../_actions/workflow-connections";
 
+/**
+ * Props interface for the EditorCanvas component.
+ * Currently uses generic object type for future extensibility.
+ */
 type Props = object;
 
+/** Initial empty array for workflow nodes */
 const initialNodes: EditorNodeType[] = [];
 
+/** Initial empty array for workflow edges/connections */
 const initialEdges: { id: string; source: string; target: string }[] = [];
 
+/**
+ * Main workflow editor canvas component providing visual workflow building interface.
+ *
+ * This component manages:
+ * - Visual workflow editor with drag-and-drop functionality
+ * - Node and edge state management for workflow elements
+ * - Integration with React Flow for visual editing capabilities
+ * - Resizable panel layout for canvas and configuration sidebar
+ * - Loading states and data persistence
+ *
+ * Core functionality:
+ * - Drag-and-drop node creation from sidebar elements
+ * - Node connection management with validation rules
+ * - Real-time workflow state synchronization
+ * - Auto-loading of existing workflow configurations
+ * - Trigger limitation (only one trigger per workflow)
+ *
+ * Layout structure:
+ * - Left panel (70%): React Flow canvas with controls and minimap
+ * - Right panel (40%): Configuration sidebar with node properties
+ * - Resizable handle for adjusting panel sizes
+ *
+ * @param props - Component props (currently unused but available for extensions)
+ * @returns JSX.Element - Split-panel workflow editor interface
+ */
 const EditorCanvas = (props: Props) => {
   const { dispatch, state } = useEditor();
   const [nodes, setNodes] = useState(initialNodes);

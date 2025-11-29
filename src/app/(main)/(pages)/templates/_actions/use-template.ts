@@ -1,9 +1,30 @@
+/**
+ * Template Instantiation Server Actions
+ *
+ * This module provides server-side functionality for creating workflows from pre-built templates:
+ * - Template definitions with metadata and node configurations
+ * - Workflow instantiation from template specifications
+ * - Database operations for storing new workflows
+ * - UUID generation for unique node and edge identifiers
+ *
+ * Features:
+ * - Multiple pre-defined workflow templates for common automation scenarios
+ * - Dynamic node and edge generation with proper positioning
+ * - Template metadata management with names and descriptions
+ * - Workflow creation with user authentication and validation
+ * - Flow path generation for workflow execution routing
+ */
+
 "use server";
 
 import { currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { EditorNodeType } from "@/lib/types";
 
+/**
+ * Supported template identifiers for workflow instantiation.
+ * Each template represents a specific automation pattern with predefined nodes and connections.
+ */
 type TemplateId =
   | "zoom-meeting-summary"
   | "drive-to-slack"
@@ -12,6 +33,10 @@ type TemplateId =
   | "discord-announcements"
   | "email-digest";
 
+/**
+ * Template metadata containing display names and descriptions for each available template.
+ * This metadata is used for template display and workflow creation.
+ */
 const TEMPLATE_META: Record<TemplateId, { name: string; description: string }> =
   {
     "zoom-meeting-summary": {
@@ -45,6 +70,18 @@ const TEMPLATE_META: Record<TemplateId, { name: string; description: string }> =
     },
   };
 
+/**
+ * Creates nodes and edges for the Zoom Meeting Summary workflow template.
+ *
+ * This template creates a comprehensive automation that:
+ * - Monitors Zoom folder for new recordings
+ * - Transcribes audio using Whisper AI
+ * - Generates meeting summaries using ChatGPT
+ * - Saves results to Google Drive
+ * - Sends notifications via Slack
+ *
+ * @returns Object containing workflow nodes and connecting edges with unique IDs
+ */
 function createZoomMeetingSummaryNodes(): {
   nodes: EditorNodeType[];
   edges: any[];
@@ -371,6 +408,31 @@ function createEmailDigestNodes(): { nodes: EditorNodeType[]; edges: any[] } {
   return { nodes, edges };
 }
 
+/**
+ * Server action to instantiate a workflow from a pre-built template.
+ *
+ * This function handles the complete workflow creation process:
+ * - Validates user authentication and template availability
+ * - Generates workflow nodes and edges based on template type
+ * - Calculates flow execution paths for workflow routing
+ * - Creates database record with template configuration
+ * - Returns workflow ID for navigation to editor
+ *
+ * Template instantiation process:
+ * 1. Authenticate user and validate template existence
+ * 2. Generate nodes and edges using template-specific creation functions
+ * 3. Calculate flow paths for workflow execution routing
+ * 4. Create workflow database record with generated configuration
+ * 5. Return success response with new workflow ID
+ *
+ * Security considerations:
+ * - Requires authenticated user via Clerk
+ * - Associates workflow with authenticated user ID
+ * - Validates template ID against allowed templates
+ *
+ * @param templateId - The template identifier to instantiate
+ * @returns Promise<{ok: boolean, workflowId?: string, error?: string}> - Result with workflow ID or error
+ */
 export async function useTemplate(templateId: TemplateId) {
   const user = await currentUser();
   if (!user) return { ok: false, error: "Unauthorized" };
@@ -381,6 +443,7 @@ export async function useTemplate(templateId: TemplateId) {
   let nodes: EditorNodeType[] = [];
   let edges: any[] = [];
 
+  // Generate template-specific workflow configuration
   switch (templateId) {
     case "zoom-meeting-summary":
       ({ nodes, edges } = createZoomMeetingSummaryNodes());
@@ -403,6 +466,7 @@ export async function useTemplate(templateId: TemplateId) {
   }
 
   // Generate flowPath from connected edges (same logic as flow-instance.tsx)
+  // This creates the execution order for workflow processing
   const flows: any = [];
   const connectedEdges = edges.map((edge) => edge.target);
   connectedEdges.map((target) => {
@@ -413,6 +477,7 @@ export async function useTemplate(templateId: TemplateId) {
     });
   });
 
+  // Create workflow database record with template configuration
   const workflow = await db.workflows.create({
     data: {
       userId: user.id,
@@ -421,7 +486,7 @@ export async function useTemplate(templateId: TemplateId) {
       nodes: JSON.stringify(nodes),
       edges: JSON.stringify(edges),
       flowPath: JSON.stringify(flows),
-      publish: false,
+      publish: false, // Templates start unpublished for user configuration
     },
     select: { id: true },
   });

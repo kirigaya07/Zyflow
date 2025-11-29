@@ -1,5 +1,23 @@
 "use server";
 
+/**
+ * Zoom Workflow Actions Module
+ *
+ * This module handles Zoom meeting processing within workflow automations:
+ * - Automatic meeting detection and processing
+ * - Manual meeting ID processing
+ * - Transcript extraction and AI summarization
+ * - Google Drive integration for summary storage
+ * - Error handling and user feedback
+ *
+ * Features:
+ * - Auto-detection of recent Zoom meetings
+ * - Manual meeting ID input support
+ * - AI-powered meeting summaries
+ * - Automated Drive storage
+ * - Comprehensive error reporting
+ */
+
 import { auth } from "@clerk/nextjs/server";
 import {
   getZoomTranscript,
@@ -8,6 +26,29 @@ import {
   saveSummaryToDrive,
 } from "@/app/(main)/(pages)/connections/_actions/zoom-connection";
 
+/**
+ * Processes Zoom meetings through the complete automation pipeline.
+ *
+ * This function:
+ * - Handles both auto-detection and manual meeting processing
+ * - Extracts transcripts from Zoom recordings
+ * - Generates AI-powered meeting summaries
+ * - Saves results to Google Drive
+ * - Provides detailed error feedback for troubleshooting
+ *
+ * Auto-detection mode:
+ * - Finds most recent Zoom meeting automatically
+ * - Processes without user input
+ *
+ * Manual mode:
+ * - Uses provided meeting ID and title
+ * - Allows specific meeting targeting
+ *
+ * @param meetingId - Zoom meeting identifier (required for manual mode)
+ * @param meetingTitle - Display title for the meeting (optional)
+ * @param isAutoDetect - Whether to auto-detect recent meetings (default: false)
+ * @returns Response object with processing results or error details
+ */
 export async function processZoomAction(
   meetingId: string,
   meetingTitle: string,

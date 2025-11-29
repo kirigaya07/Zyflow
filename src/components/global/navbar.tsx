@@ -1,3 +1,22 @@
+/**
+ * Main Navigation Bar Component
+ * 
+ * This component provides the primary navigation interface for the Zyflow application:
+ - Fixed top navigation with glassmorphism design
+ * - Brand logo and identity display
+ * - Main navigation menu with key product sections
+ * - User authentication integration with Clerk
+ * - Responsive design with mobile menu toggle
+ * 
+ * Features:
+ * - Server-side user authentication detection
+ * - Dynamic content based on authentication status
+ * - Loading-aware navigation links
+ * - Glassmorphism backdrop with blur effects
+ * - Responsive navigation with mobile menu support
+ * - Accessibility features with proper ARIA labels
+ */
+
 import Image from "next/image";
 import React from "react";
 import { MenuIcon } from "lucide-react";
@@ -5,12 +24,40 @@ import { currentUser } from "@clerk/nextjs/server";
 import { UserButton } from "@clerk/nextjs";
 import { LoadingLink } from "./loading-link";
 
+/**
+ * Main navigation bar component for the application header.
+ *
+ * This component handles:
+ * - Brand identity display with logo and application name
+ * - Primary navigation menu with key product sections
+ * - User authentication status and controls
+ * - Responsive design for desktop and mobile viewports
+ * - Server-side authentication detection for personalized content
+ *
+ * Layout structure:
+ * - Left: Brand logo and "ZyFlow" text
+ * - Center: Main navigation menu (desktop only)
+ * - Right: User controls, dashboard link, and mobile menu toggle
+ *
+ * Authentication features:
+ * - Dynamic dashboard/get started button based on auth status
+ * - User profile display with Clerk UserButton integration
+ * - Personalized greeting with user name or email
+ *
+ * Design features:
+ * - Fixed positioning with glassmorphism backdrop
+ * - Animated gradient border on call-to-action button
+ * - Responsive navigation hiding on mobile devices
+ * - Accessibility support with proper semantic HTML and ARIA labels
+ *
+ * @returns JSX.Element - Fixed navigation header with authentication and responsive design
+ */
 const Navbar = async () => {
   const user = await currentUser();
   return (
     <header className="fixed right-0 left-0 top-0 py-4 px-4 bg-black/40 backdrop-blur-lg z-[100] flex items-center border-b-[1px] border-neutral-900 justify-between">
       <aside className="flex items-center gap-[2px]">
-        <p className="text-3xl font-bold">Z</p>
+        <p className="text-3xl font-bold">Zy</p>
         <Image
           src="/fuzzieLogo.png"
           width={15}

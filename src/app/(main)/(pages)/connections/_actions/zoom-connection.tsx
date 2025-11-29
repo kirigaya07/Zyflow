@@ -1,8 +1,38 @@
 "use server";
 
+/**
+ * Zoom Connection Actions Module
+ *
+ * This module handles Zoom meeting integration functionality:
+ * - Recording retrieval from Google Drive
+ * - Transcript extraction and processing
+ * - AI-powered meeting summary generation
+ * - Drive storage for summaries and transcripts
+ *
+ * Features:
+ * - Automatic Zoom recording detection
+ * - Meeting transcript parsing and analysis
+ * - OpenAI GPT integration for summaries
+ * - Google Drive API for file management
+ * - Cost optimization for AI processing
+ * - Error handling and fallback mechanisms
+ */
+
 import { google } from "googleapis";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 
+/**
+ * Retrieves recent Zoom meeting recordings from Google Drive.
+ *
+ * This function:
+ * - Searches Drive for Zoom-related files (last 7 days)
+ * - Filters for video and text files
+ * - Extracts meeting IDs from filenames
+ * - Returns formatted meeting data for processing
+ *
+ * @param userId - Clerk user ID for OAuth token retrieval
+ * @returns Response with meeting recordings data or error message
+ */
 export const getZoomMeetingRecordings = async (userId: string) => {
   try {
     const oauth2Client = new google.auth.OAuth2(
@@ -155,6 +185,25 @@ export const getZoomTranscript = async (meetingId: string, userId: string) => {
   }
 };
 
+/**
+ * Generates AI-powered meeting summary from transcript using OpenAI GPT.
+ *
+ * This function:
+ * - Validates transcript content and API configuration
+ * - Optimizes transcript length for cost efficiency
+ * - Uses GPT-3.5-turbo for professional summary generation
+ * - Handles API errors and quota limitations
+ * - Provides structured business-ready summaries
+ *
+ * Features:
+ * - Cost estimation and optimization ($5 credit optimization)
+ * - Content filtering detection and fallback
+ * - Comprehensive error handling
+ * - Professional summary formatting
+ *
+ * @param transcript - Meeting transcript text to summarize
+ * @returns Response with generated summary or error details
+ */
 export const generateMeetingSummary = async (transcript: string) => {
   try {
     console.log(

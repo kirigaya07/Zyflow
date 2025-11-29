@@ -1,5 +1,19 @@
 "use client";
 
+/**
+ * Discord Webhook Form Component
+ *
+ * This component provides a form interface for manually connecting Discord webhooks.
+ * Handles webhook URL validation, Discord API integration, and error feedback.
+ *
+ * Features:
+ * - Webhook URL validation and parsing
+ * - Discord API integration for webhook verification
+ * - User-friendly setup instructions
+ * - Error handling and user feedback
+ * - Loading states during connection process
+ */
+
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +21,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
+/**
+ * Props interface for the DiscordWebhookForm component.
+ */
 interface DiscordWebhookFormProps {
+  /** Callback function to handle successful webhook setup */
   onSubmit: (webhookData: {
     webhook_url: string;
     webhook_name: string;
@@ -16,10 +34,30 @@ interface DiscordWebhookFormProps {
   }) => Promise<void>;
 }
 
+/**
+ * DiscordWebhookForm component for manual Discord webhook connection.
+ *
+ * This component:
+ * - Provides input field for Discord webhook URL
+ * - Validates webhook URL format
+ * - Fetches webhook details from Discord API
+ * - Handles form submission and error states
+ * - Shows setup instructions for users
+ *
+ * @param props - Component props containing onSubmit callback
+ * @returns JSX.Element - Discord webhook connection form
+ */
 const DiscordWebhookForm = ({ onSubmit }: DiscordWebhookFormProps) => {
   const [webhookUrl, setWebhookUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  /**
+   * Parses Discord webhook URL to extract webhook ID and token.
+   *
+   * @param url - Discord webhook URL to parse
+   * @returns Object containing webhook_id and webhook_token
+   * @throws Error if URL format is invalid
+   */
   const parseWebhookUrl = (url: string) => {
     // Discord webhook URL format: https://discord.com/api/webhooks/{webhook_id}/{webhook_token}
     const match = url.match(
@@ -34,6 +72,18 @@ const DiscordWebhookForm = ({ onSubmit }: DiscordWebhookFormProps) => {
     };
   };
 
+  /**
+   * Handles form submission and webhook connection process.
+   *
+   * This function:
+   * - Validates webhook URL input
+   * - Parses webhook URL for ID extraction
+   * - Fetches webhook details from Discord API
+   * - Calls onSubmit callback with webhook data
+   * - Provides user feedback via toast notifications
+   *
+   * @param e - Form submission event
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!webhookUrl.trim()) {

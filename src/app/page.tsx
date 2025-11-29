@@ -29,7 +29,7 @@ export default function Home() {
                   </span>
                 </Button>
                 <h1 className="text-5xl md:text-8xl  bg-clip-text text-transparent bg-gradient-to-b from-white to-neutral-600 font-sans font-bold">
-                  Automate Your Work With Zflow
+                  Automate Your Work With Zyflow
                 </h1>
               </div>
             }

@@ -1,3 +1,16 @@
+/**
+ * Connections Page Component
+ *
+ * This is the main connections management page that allows users to:
+ * - View all available service integrations
+ * - Connect/disconnect from third-party services (Discord, Slack, Notion, etc.)
+ * - Handle OAuth callback processing for service authorizations
+ * - Manage Zoom meeting automation settings
+ *
+ * The page processes OAuth redirect parameters and automatically establishes
+ * connections when users return from service authorization flows.
+ */
+
 import { CONNECTIONS } from "@/lib/constants";
 import React from "react";
 import ZoomWatcherControl from "@/components/zoom-watcher-control";
@@ -8,12 +21,30 @@ import { onSlackConnect } from "./_actions/slack-connection";
 import { getUserData } from "./_actions/get-user";
 import ConnectionCard from "./_components/connection-card";
 
+/**
+ * Props interface for the Connections page component.
+ * Handles search parameters from OAuth redirects.
+ */
 type Props = {
   searchParams: Promise<{ [key: string]: string | undefined }>;
 };
 
+/**
+ * Main Connections page component that handles service integrations and OAuth callbacks.
+ *
+ * This component:
+ * - Processes OAuth redirect parameters from various services
+ * - Automatically establishes connections when users return from authorization
+ * - Displays connection status for all available services
+ * - Provides Zoom automation controls
+ *
+ * @param props - Component props containing search parameters from OAuth redirects
+ * @returns JSX.Element - The connections management interface
+ */
 const Connections = async (props: Props) => {
   const searchParams = await props.searchParams;
+
+  // Extract OAuth callback parameters for different services
   const {
     webhook_id,
     webhook_name,
@@ -59,8 +90,19 @@ const Connections = async (props: Props) => {
   const user = await currentUser();
   if (!user) return null;
 
+  /**
+   * Processes OAuth callbacks and establishes service connections.
+   *
+   * This function:
+   * - Handles Discord webhook setup after OAuth authorization
+   * - Processes Notion workspace connections
+   * - Establishes Slack bot integrations
+   * - Retrieves and formats existing connection status
+   *
+   * @returns Object containing connection status for all services
+   */
   const onUserConnections = async () => {
-    // Only call the connection handler for the service that just completed OAuth
+    // Process Discord OAuth callback - only if webhook creation is complete
     if (webhook_id && channel_id && guild_id && !discord_setup) {
       // Discord OAuth completed with webhook creation
       await onDiscordConnect(

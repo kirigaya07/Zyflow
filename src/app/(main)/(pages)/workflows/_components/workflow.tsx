@@ -1,3 +1,20 @@
+/**
+ * Individual Workflow Card Component
+ *
+ * This component displays a single workflow automation as an interactive card with:
+ * - Workflow metadata (name, description, publish status)
+ * - Service integration icons (Google Drive, Notion, Discord)
+ * - Publish toggle switch for activation control
+ * - Loading-aware navigation to workflow editor
+ *
+ * Features:
+ * - Real-time publish status toggling with toast notifications
+ * - Visual service integration indicators
+ * - Click-through navigation to editor with loading states
+ * - Responsive card layout with proper spacing and accessibility
+ * - Unique element IDs for proper form association
+ */
+
 "use client";
 
 import React from "react";
@@ -16,6 +33,15 @@ import { LoadingLink } from "@/components/global/loading-link";
 // import { toast } from "sonner";
 // import { onFlowPublish } from "../_actions/workflow-connections";
 
+/**
+ * Props interface for the individual Workflow card component.
+ *
+ * @interface Props
+ * @property {string} name - Display name of the workflow
+ * @property {string} description - Workflow description text
+ * @property {string} id - Unique workflow identifier for routing and operations
+ * @property {boolean | null} publish - Current publish/active status of the workflow
+ */
 type Props = {
   name: string;
   description: string;
@@ -23,7 +49,44 @@ type Props = {
   publish: boolean | null;
 };
 
+/**
+ * Individual workflow card component that displays workflow information and controls.
+ *
+ * This component provides:
+ * - Visual workflow representation with service integration icons
+ * - Clickable card that navigates to workflow editor with loading states
+ * - Toggle switch for publishing/unpublishing workflows
+ * - Status indicators and user feedback via toast notifications
+ *
+ * Layout structure:
+ * - Left side: Service integration icons, workflow name and description
+ * - Right side: Publish status label and toggle switch
+ * - Full card is clickable for navigation to editor
+ * - Responsive design with proper minimum heights and spacing
+ *
+ * Accessibility features:
+ * - Proper label association with unique IDs
+ * - Alt text for service integration images
+ * - Semantic HTML structure with proper roles
+ *
+ * @param description - Workflow description text displayed under the title
+ * @param id - Unique workflow ID used for routing and publish operations
+ * @param name - Workflow display name shown as card title
+ * @param publish - Current publish status (true = active, false = inactive, null = unknown)
+ * @returns JSX.Element - Interactive card component with workflow information and controls
+ */
 const Workflow = ({ description, id, name, publish }: Props) => {
+  /**
+   * Handles workflow publish/unpublish toggle events.
+   *
+   * This function:
+   * - Reads the current switch state from the button event
+   * - Calls the server action to update publish status in database
+   * - Shows success/error feedback via toast notifications
+   * - Handles the boolean inversion logic for toggle behavior
+   *
+   * @param event - Switch button click event containing current state
+   */
   const onPublishFlow = async (event: React.MouseEvent<HTMLButtonElement>) => {
     const response = await onFlowPublish(
       id,

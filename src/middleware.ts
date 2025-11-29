@@ -6,6 +6,8 @@ export default clerkMiddleware({
     "/api/clerk-webhook",
     "/api/drive-activity/notification",
     "/api/payment/success",
+    "/api/flow",
+    "/api/cron/refresh-drive-listener",
   ],
   ignoredRoutes: [
     "/api/auth/callback/discord",
@@ -13,6 +15,7 @@ export default clerkMiddleware({
     "/api/auth/callback/slack",
     "/api/flow",
     "/api/cron/wait",
+    "/api/cron/refresh-drive-listener",
   ],
 });
 

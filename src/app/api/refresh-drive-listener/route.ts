@@ -79,7 +79,7 @@ export async function GET() {
       throw new Error("startPageToken is unexpectedly null");
     }
 
-    const webhookAddress = `${process.env.NGROK_URI}/api/drive-activity/notification`;
+    const webhookAddress = `${process.env.NEXT_PUBLIC_APP_URL || process.env.NGROK_URI}/api/drive-activity/notification`;
 
     const listener = await drive.changes.watch({
       pageToken: startPageToken,

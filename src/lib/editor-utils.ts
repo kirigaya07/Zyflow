@@ -1,3 +1,13 @@
+/**
+ * Editor Utilities Module
+ *
+ * This module contains utility functions for the workflow editor, including:
+ * - Drag and drop operations for workflow nodes
+ * - Connection management and preloading
+ * - Content handling for different service integrations
+ * - Template management for workflow automation
+ */
+
 import { ConnectionProviderProps } from "@/providers/connections-provider";
 import { EditorCanvasCardType } from "./types";
 import { EditorState } from "@/providers/editor-provider";
@@ -12,6 +22,13 @@ import {
 } from "@/app/(main)/(pages)/connections/_actions/slack-connection";
 import { Option } from "@/components/ui/multiple-selector";
 
+/**
+ * Handles the start of drag operation for workflow editor nodes.
+ * Sets up the data transfer object with node type information for drag and drop functionality.
+ *
+ * @param event - The drag event object
+ * @param nodeType - The type of the node being dragged
+ */
 export const onDragStart = (
   event: any,
   nodeType: EditorCanvasCardType["type"]
@@ -20,6 +37,13 @@ export const onDragStart = (
   event.dataTransfer.effectAllowed = "move";
 };
 
+/**
+ * Updates Slack node content based on input field changes.
+ * Handles real-time content updates for Slack message configuration.
+ *
+ * @param nodeConnection - Connection provider with state management functions
+ * @param event - Input change event containing the new content value
+ */
 export const onSlackContent = (
   nodeConnection: ConnectionProviderProps,
   event: React.ChangeEvent<HTMLInputElement>
@@ -30,6 +54,13 @@ export const onSlackContent = (
   }));
 };
 
+/**
+ * Updates Discord node content based on input field changes.
+ * Handles real-time content updates for Discord message configuration.
+ *
+ * @param nodeConnection - Connection provider with state management functions
+ * @param event - Input change event containing the new content value
+ */
 export const onDiscordContent = (
   nodeConnection: ConnectionProviderProps,
   event: React.ChangeEvent<HTMLInputElement>
@@ -86,9 +117,20 @@ export const onAddTemplate = (
   }
 };
 
-// Add a loading state to prevent multiple simultaneous calls
+/** Global loading state to prevent multiple simultaneous connection loading operations */
 let isLoadingConnections = false;
 
+/**
+ * Preloads all available service connections for the workflow editor.
+ * Fetches and configures Discord, Notion, and Slack connections in parallel.
+ * Includes loading state management to prevent duplicate requests.
+ *
+ * This function is typically called when initializing the editor to ensure
+ * all connection data is available for workflow configuration.
+ *
+ * @param nodeConnection - Connection provider with state management functions
+ * @param googleFile - Google Drive file data for Notion integration
+ */
 export const preloadAllConnections = async (
   nodeConnection: ConnectionProviderProps,
   googleFile: any
@@ -148,6 +190,17 @@ export const preloadAllConnections = async (
   }
 };
 
+/**
+ * Handles connection loading for a specific selected node in the editor.
+ * Loads the appropriate connection data based on the currently selected node type.
+ *
+ * This function is called when a user selects a node in the workflow editor
+ * and needs to configure its connection settings.
+ *
+ * @param nodeConnection - Connection provider with state management functions
+ * @param editorState - Current editor state containing selected node information
+ * @param googleFile - Google Drive file data for integrations that require it
+ */
 export const onConnections = async (
   nodeConnection: ConnectionProviderProps,
   editorState: EditorState,
@@ -204,6 +257,14 @@ export const onConnections = async (
   }
 };
 
+/**
+ * Fetches available Slack channels for bot integration.
+ * Retrieves the list of channels that the Slack bot has access to
+ * and updates the UI selector with the available options.
+ *
+ * @param token - Slack bot access token for API authentication
+ * @param setSlackChannels - State setter function to update channel options
+ */
 export const fetchBotSlackChannels = async (
   token: string,
   setSlackChannels: (slackChannels: Option[]) => void
@@ -211,6 +272,13 @@ export const fetchBotSlackChannels = async (
   await listBotChannels(token)?.then((channels) => setSlackChannels(channels));
 };
 
+/**
+ * Updates Notion node content based on input field changes.
+ * Handles real-time content updates for Notion database entries.
+ *
+ * @param nodeConnection - Connection provider with state management functions
+ * @param event - Input change event containing the new content value
+ */
 export const onNotionContent = (
   nodeConnection: ConnectionProviderProps,
   event: React.ChangeEvent<HTMLInputElement>

@@ -1,3 +1,21 @@
+/**
+ * Zoom Folder Watcher Module
+ *
+ * This module provides automated monitoring and processing of Zoom meeting recordings.
+ * It watches a specified folder for new Zoom audio files, processes them through
+ * speech-to-text conversion, generates AI summaries, and integrates with Google Drive
+ * and workflow automation systems.
+ *
+ * Key Features:
+ * - Real-time folder monitoring for new Zoom recordings
+ * - Automatic audio file detection and processing
+ * - Speech-to-text conversion using multiple providers (Azure, OpenAI Whisper)
+ * - AI-powered meeting summary generation
+ * - Google Drive integration for file storage
+ * - Workflow automation triggers
+ * - Error handling and fallback mechanisms
+ */
+
 import { watch } from "fs";
 import { google } from "googleapis";
 import { auth, clerkClient } from "@clerk/nextjs/server";
@@ -5,16 +23,36 @@ import { generateMeetingSummary } from "@/app/(main)/(pages)/connections/_action
 // Note: audio2text package requires Google Cloud credentials
 // import audio2text from "audio2text";
 
-// Simple working Zoom folder watcher
+/**
+ * ZoomFolderWatcher Class
+ *
+ * Monitors a specified folder for new Zoom meeting recordings and automatically
+ * processes them through the complete workflow pipeline.
+ *
+ * @example
+ * ```typescript
+ * const watcher = new ZoomFolderWatcher('/path/to/zoom/folder');
+ * watcher.startWatching();
+ * ```
+ */
 export class ZoomFolderWatcher {
   private watcher: ReturnType<typeof watch> | null = null;
   private isWatching: boolean = false;
   private zoomFolderPath: string;
 
+  /**
+   * Creates a new ZoomFolderWatcher instance.
+   * @param zoomFolderPath - Absolute path to the Zoom recordings folder to monitor
+   */
   constructor(zoomFolderPath: string) {
     this.zoomFolderPath = zoomFolderPath;
   }
 
+  /**
+   * Starts monitoring the Zoom folder for file changes.
+   * Sets up recursive file system watching with automatic event handling.
+   * Prevents multiple watchers from running simultaneously.
+   */
   startWatching() {
     if (this.isWatching) return;
 
@@ -35,6 +73,10 @@ export class ZoomFolderWatcher {
     console.log("✅ Zoom folder watcher started");
   }
 
+  /**
+   * Stops the folder watcher and cleans up resources.
+   * Safe to call multiple times.
+   */
   stopWatching() {
     if (this.watcher) {
       this.watcher.close();
@@ -109,6 +151,18 @@ export class ZoomFolderWatcher {
     }
   }
 
+  /**
+   * Processes a detected audio file through the complete workflow pipeline.
+   *
+   * This method handles:
+   * - User authentication verification
+   * - Speech-to-text conversion (with multiple provider fallbacks)
+   * - Transcript upload to Google Drive
+   * - AI summary generation
+   * - Summary storage and workflow notifications
+   *
+   * @param filename - Name of the audio file to process
+   */
   private async processAudioFile(filename: string) {
     try {
       const { userId } = await auth();
@@ -672,9 +726,16 @@ Note: To enable automatic speech-to-text conversion, please configure Google Clo
   }
 }
 
-// Global watcher instance
+/** Global singleton instance of the Zoom folder watcher */
 let globalWatcher: ZoomFolderWatcher | null = null;
 
+/**
+ * Starts the global Zoom folder watcher with the specified folder path.
+ * Automatically stops any existing watcher before starting a new one.
+ *
+ * @param zoomFolderPath - Absolute path to the Zoom recordings folder
+ * @returns The active ZoomFolderWatcher instance
+ */
 export function startZoomWatcher(zoomFolderPath: string) {
   if (globalWatcher) {
     globalWatcher.stopWatching();
@@ -686,6 +747,10 @@ export function startZoomWatcher(zoomFolderPath: string) {
   return globalWatcher;
 }
 
+/**
+ * Stops the global Zoom folder watcher and cleans up resources.
+ * Safe to call even if no watcher is currently active.
+ */
 export function stopZoomWatcher() {
   if (globalWatcher) {
     globalWatcher.stopWatching();

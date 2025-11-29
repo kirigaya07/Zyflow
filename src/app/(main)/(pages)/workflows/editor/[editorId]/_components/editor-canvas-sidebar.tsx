@@ -1,3 +1,21 @@
+/**
+ * Workflow Editor Sidebar Component
+ *
+ * This component provides the configuration and control sidebar for the workflow editor:
+ * - Node library for dragging workflow elements onto canvas
+ * - Connection management for external services
+ * - Selected node configuration and properties
+ * - Service integration status and controls
+ *
+ * Features:
+ * - Tabbed interface for different sidebar functions
+ * - Drag-and-drop node creation from component library
+ * - Real-time connection status monitoring
+ * - Service account management and authentication
+ * - Node property configuration for selected elements
+ * - Manual connection refresh capabilities
+ */
+
 "use client";
 import { EditorCanvasTypes, EditorNodeType } from "@/lib/types";
 import { useNodeConnections } from "@/providers/connections-provider";
@@ -35,10 +53,40 @@ import RenderConnectionAccordion from "./render-connection-accordion";
 import RenderOutputAccordion from "./render-output-accordian";
 import { useZyflowStore } from "@/store";
 
+/**
+ * Props interface for the EditorCanvasSidebar component.
+ *
+ * @interface Props
+ * @property {EditorNodeType[]} nodes - Array of current workflow nodes for connection management
+ */
 type Props = {
   nodes: EditorNodeType[];
 };
 
+/**
+ * Workflow editor sidebar component providing node library and configuration panels.
+ *
+ * This component manages:
+ * - Tabbed interface with Elements, Connections, and Settings tabs
+ * - Draggable workflow elements library for canvas creation
+ * - Service connection status and management
+ * - Selected node configuration and properties
+ * - Manual refresh capabilities for service connections
+ *
+ * Tab functionality:
+ * - Elements: Library of draggable workflow components (triggers, actions, conditions)
+ * - Connections: Service integration status and authentication management
+ * - Settings: Selected node properties and configuration options
+ *
+ * Features:
+ * - Real-time connection monitoring and status updates
+ * - Automatic connection preloading when nodes are present
+ * - Manual refresh button for service connections
+ * - Responsive accordion layout for service management
+ *
+ * @param nodes - Array of current workflow nodes used for connection context
+ * @returns JSX.Element - Tabbed sidebar with workflow tools and configuration
+ */
 const EditorCanvasSidebar = ({ nodes }: Props) => {
   const { state } = useEditor();
   const { nodeConnection } = useNodeConnections();

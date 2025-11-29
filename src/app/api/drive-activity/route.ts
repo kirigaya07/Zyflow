@@ -7,12 +7,15 @@ import { db } from "@/lib/db";
 export async function GET() {
   try {
     console.log("🔍 Starting Drive listener creation...");
+    const webhookUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NGROK_URI;
     console.log("Environment check:", {
       hasGoogleClientId: !!process.env.GOOGLE_CLIENT_ID,
       hasGoogleClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
       hasOAuth2RedirectUri: !!process.env.OAUTH2_REDIRECT_URI,
       hasNgrokUri: !!process.env.NGROK_URI,
+      hasAppUrl: !!process.env.NEXT_PUBLIC_APP_URL,
       ngrokUri: process.env.NGROK_URI,
+      appUrl: process.env.NEXT_PUBLIC_APP_URL,
     });
 
     // Validate required environment variables
@@ -20,7 +23,7 @@ export async function GET() {
       !process.env.GOOGLE_CLIENT_ID ||
       !process.env.GOOGLE_CLIENT_SECRET ||
       !process.env.OAUTH2_REDIRECT_URI ||
-      !process.env.NGROK_URI
+      !webhookUrl
     ) {
       return NextResponse.json(
         {
@@ -29,7 +32,7 @@ export async function GET() {
             GOOGLE_CLIENT_ID: !process.env.GOOGLE_CLIENT_ID,
             GOOGLE_CLIENT_SECRET: !process.env.GOOGLE_CLIENT_SECRET,
             OAUTH2_REDIRECT_URI: !process.env.OAUTH2_REDIRECT_URI,
-            NGROK_URI: !process.env.NGROK_URI,
+            WEBHOOK_URL: !webhookUrl,
           },
         },
         { status: 500 }
@@ -119,7 +122,7 @@ export async function GET() {
       throw new Error("startPageToken is unexpectedly null");
     }
 
-    const webhookAddress = `${process.env.NGROK_URI}/api/drive-activity/notification`;
+    const webhookAddress = `${process.env.NEXT_PUBLIC_APP_URL || process.env.NGROK_URI}/api/drive-activity/notification`;
     console.log("Creating Drive changes watch:", {
       supportsAllDrives: true,
       supportsTeamDrives: true,
@@ -212,7 +215,7 @@ export async function GET() {
         error: error instanceof Error ? error.message : "Unknown error",
         action: actionAdvice,
         debug: {
-          webhookUrl: `${process.env.NGROK_URI}/api/drive-activity/notification`,
+          webhookUrl: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NGROK_URI}/api/drive-activity/notification`,
           timestamp: new Date().toISOString(),
         },
       },

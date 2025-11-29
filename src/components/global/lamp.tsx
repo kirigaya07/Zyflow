@@ -1,9 +1,44 @@
+/**
+ * Lamp Animation Component
+ *
+ * This component creates a dramatic lamp-like lighting effect with animated elements:
+ * - Gradient conic lighting effect that resembles a lamp beam
+ * - Animated sparkles and particle effects for ambiance
+ * - Smooth entrance animations with Framer Motion
+ * - Gradient text effects with transparency and clipping
+ *
+ * Features:
+ * - Framer Motion animations for smooth entrance effects
+ * - Conic gradient backgrounds for lamp beam simulation
+ * - Sparkles component integration for particle effects
+ * - Responsive design with mobile-first typography scaling
+ * - High contrast design optimized for dark themes
+ * - Performance-optimized animations with proper isolation
+ */
+
 "use client";
 import React from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { SparklesCore } from "@/components/ui/sparkles";
 
+/**
+ * Main lamp component with animated heading text.
+ *
+ * This component provides:
+ * - Animated lamp lighting effect as background
+ * - Gradient text with smooth entrance animation
+ * - Responsive typography that scales from mobile to desktop
+ * - Integration with LampContainer for consistent theming
+ *
+ * Animation features:
+ * - Text slides up from below with opacity fade-in
+ * - Delayed animation for dramatic entrance effect
+ * - Smooth easing curves for natural motion
+ * - Gradient text clipping for visual appeal
+ *
+ * @returns JSX.Element - Animated lamp component with heading text
+ */
 export function LampComponent() {
   return (
     <LampContainer>
@@ -24,6 +59,25 @@ export function LampComponent() {
   );
 }
 
+/**
+ * Lamp container component that creates the lighting effect backdrop.
+ *
+ * This component provides:
+ * - Full-height container with dark background for lamp effect
+ * - Animated conic gradient that simulates lamp beam lighting
+ * - Sparkles integration for atmospheric particle effects
+ * - Proper z-index management for layered visual effects
+ *
+ * Design features:
+ * - Dark neutral background for high contrast
+ * - Conic gradient animation that expands on view
+ * - Sparkles particles for ambient lighting simulation
+ * - Responsive height and scaling for different screen sizes
+ *
+ * @param children - Content to display within the lamp container
+ * @param className - Additional CSS classes for container customization
+ * @returns JSX.Element - Animated lamp container with lighting effects
+ */
 export const LampContainer = ({
   children,
   className,

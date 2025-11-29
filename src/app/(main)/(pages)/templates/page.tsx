@@ -1,3 +1,21 @@
+/**
+ * Workflow Templates Page Component
+ *
+ * This page provides a comprehensive template gallery for workflow automation:
+ * - Pre-built workflow templates for common automation scenarios
+ * - Search and filtering capabilities for template discovery
+ * - One-click template instantiation for quick workflow creation
+ * - Visual template cards with service integration indicators
+ *
+ * Features:
+ * - Template library with popular automation patterns
+ * - Service-specific filtering (Zoom, Google Drive, Slack, Notion)
+ * - Template preview and instant deployment
+ * - Custom template request functionality
+ * - Responsive grid layout with detailed descriptions
+ * - Loading states and error handling for template operations
+ */
+
 "use client";
 import React from "react";
 import {
@@ -24,6 +42,10 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { useTemplate } from "./_actions/use-template";
 
+/**
+ * Pre-defined workflow templates with metadata and configuration.
+ * Each template includes service integrations, descriptions, and visual indicators.
+ */
 const templates = [
   {
     id: "zoom-meeting-summary",
@@ -75,10 +97,46 @@ const templates = [
   },
 ];
 
+/**
+ * Templates page component providing workflow template gallery and management.
+ *
+ * This component handles:
+ * - Display of pre-built workflow templates in a responsive grid
+ * - Search and filtering functionality for template discovery
+ * - Template instantiation with loading states and navigation
+ * - Custom template request capabilities
+ * - Service-specific categorization and filtering
+ *
+ * Template features:
+ * - Visual cards with service integration icons and descriptions
+ * - Tag-based filtering for quick discovery
+ * - One-click deployment to workflow editor
+ * - Preview functionality for template inspection
+ * - Custom template request for specialized workflows
+ *
+ * User interaction:
+ * - Search functionality for template discovery
+ * - Service-specific filter buttons (Zoom, Drive, Slack, Notion)
+ * - Template deployment with loading states
+ * - Navigation to workflow editor after template creation
+ *
+ * @returns JSX.Element - Templates gallery page with search, filters, and template cards
+ */
 export default function TemplatesPage() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
+  /**
+   * Handles template instantiation and navigation to the workflow editor.
+   *
+   * This function:
+   * - Uses React transition for loading state management
+   * - Calls the useTemplate server action to create a new workflow
+   * - Navigates to the workflow editor with the newly created workflow ID
+   * - Handles success and error states appropriately
+   *
+   * @param id - The template ID to instantiate
+   */
   const onUseTemplate = (id: string) => {
     startTransition(async () => {
       // @ts-expect-error server action import
