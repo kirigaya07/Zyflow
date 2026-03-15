@@ -144,13 +144,15 @@ export const onCreateNewPageInDatabase = async (
       database_id: databaseId,
     },
     properties: {
-      name: [
-        {
-          text: {
-            content: content,
+      Name: {
+        title: [
+          {
+            text: {
+              content: content,
+            },
           },
-        },
-      ],
+        ],
+      },
     },
   });
   if (response) {
