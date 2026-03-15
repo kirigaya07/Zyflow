@@ -7,7 +7,7 @@ const config: Config = {
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
   ],
-  darkMode: ["class"],
+  darkMode: ["class", ".dark"],
 } satisfies Config;
 
 export default config;

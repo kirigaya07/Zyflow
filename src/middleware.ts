@@ -1,30 +1,26 @@
-import { clerkMiddleware } from "@clerk/nextjs/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-export default clerkMiddleware({
-  publicRoutes: [
-    "/",
-    "/api/clerk-webhook",
-    "/api/drive-activity/notification",
-    "/api/zoom-webhook",
-    "/api/payment/success",
-    "/api/flow",
-    "/api/cron/refresh-drive-listener",
-    "/api/cron/cleanup-logs",
-    "/api/webhooks/:workflowId*",
-    "/api/inngest",
-  ],
-  ignoredRoutes: [
-    "/api/auth/callback/discord",
-    "/api/auth/callback/notion",
-    "/api/auth/callback/slack",
-    "/api/flow",
-    "/api/zoom-webhook",
-    "/api/cron/wait",
-    "/api/cron/refresh-drive-listener",
-    "/api/cron/cleanup-logs",
-    "/api/webhooks/:workflowId*",
-    "/api/inngest",
-  ],
+const isPublicRoute = createRouteMatcher([
+  "/",
+  "/api/clerk-webhook",
+  "/api/drive-activity/notification",
+  "/api/zoom-webhook",
+  "/api/payment/success",
+  "/api/flow",
+  "/api/cron/refresh-drive-listener",
+  "/api/cron/cleanup-logs",
+  "/api/webhooks/(.*)",
+  "/api/inngest",
+  "/api/auth/callback/discord",
+  "/api/auth/callback/notion",
+  "/api/auth/callback/slack",
+  "/api/cron/wait",
+]);
+
+export default clerkMiddleware(async (auth, req) => {
+  if (!isPublicRoute(req)) {
+    await auth.protect();
+  }
 });
 
 export const config = {

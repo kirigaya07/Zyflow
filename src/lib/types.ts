@@ -70,6 +70,7 @@ export type EditorCanvasTypes =
   | "Condition"
   | "AI"
   | "Slack"
+  | "Discord"
   | "Google Drive"
   | "Notion"
   | "Custom Webhook"

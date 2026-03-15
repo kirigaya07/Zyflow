@@ -45,6 +45,7 @@
     "node-speech-to-text": "^1.0.0",
     "nodemailer": "^7.0.9",
     "openai": "^6.7.0",
+    "radix-ui": "^1.4.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-hook-form": "^7.65.0",

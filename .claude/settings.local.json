@@ -11,7 +11,9 @@
       "Bash(node -e \"require\\(''inngest''\\)\")",
       "mcp__claude_ai_Vercel__list_teams",
       "mcp__claude_ai_Vercel__list_projects",
-      "mcp__claude_ai_Vercel__deploy_to_vercel"
+      "mcp__claude_ai_Vercel__deploy_to_vercel",
+      "Bash(npx tsc:*)",
+      "Bash(npx shadcn@latest add popover --yes)"
     ],
     "additionalDirectories": [
       "d:\\vscode\\zyflow\\src\\app\\api\\webhooks"

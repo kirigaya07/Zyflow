@@ -26,6 +26,7 @@ import {
   applyEdgeChanges,
   addEdge,
   Background,
+  BackgroundVariant,
   Connection,
   Controls,
   Edge,
@@ -94,7 +95,7 @@ const EditorCanvas = (props: Props) => {
   const [edges, setEdges] = useState(initialEdges);
   const [isWorkFlowLoading, setIsWorkFlowLoading] = useState<boolean>(false);
   const [reactFlowInstance, setReactFlowInstance] =
-    useState<ReactFlowInstance>();
+    useState<ReactFlowInstance<EditorNodeType, Edge>>();
   const pathname = usePathname();
 
   const onDragOver = useCallback((event: any) => {
@@ -286,7 +287,7 @@ const EditorCanvas = (props: Props) => {
                 edges={edges}
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}
-                onInit={setReactFlowInstance}
+                onInit={(instance) => setReactFlowInstance(instance as unknown as ReactFlowInstance<EditorNodeType, Edge>)}
                 fitView
                 onClick={handleClickCanvas}
                 nodeTypes={nodeTypes}
@@ -298,7 +299,7 @@ const EditorCanvas = (props: Props) => {
                   zoomable
                   pannable
                 />
-                <Background variant="dots" gap={12} size={1} />
+                <Background variant={"dots" as BackgroundVariant} gap={12} size={1} />
               </ReactFlow>
             )}
           </div>

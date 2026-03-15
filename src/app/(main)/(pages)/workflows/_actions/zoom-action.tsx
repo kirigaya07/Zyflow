@@ -66,9 +66,9 @@ export async function processZoomAction(
 
       if (
         recentMeetingsResult.message === "success" &&
-        recentMeetingsResult.meetings.length > 0
+        (recentMeetingsResult.meetings?.length ?? 0) > 0
       ) {
-        const mostRecentMeeting = recentMeetingsResult.meetings[0];
+        const mostRecentMeeting = recentMeetingsResult.meetings![0];
 
         // Get transcript
         const transcriptResult = await getZoomTranscript(
@@ -84,9 +84,12 @@ export async function processZoomAction(
         }
 
         // Generate summary
-        const summaryResult = await generateMeetingSummary(
-          transcriptResult.transcript
-        );
+        const successResult = transcriptResult as { message: string; transcript: unknown };
+        const transcriptText =
+          typeof successResult.transcript === "string"
+            ? successResult.transcript
+            : JSON.stringify(successResult.transcript);
+        const summaryResult = await generateMeetingSummary(transcriptText);
 
         if (summaryResult.message !== "success") {
           return {
@@ -136,9 +139,12 @@ export async function processZoomAction(
       }
 
       // Generate summary
-      const summaryResult = await generateMeetingSummary(
-        transcriptResult.transcript
-      );
+      const transcriptData = (transcriptResult as { message: string; transcript: unknown }).transcript;
+      const transcriptText =
+        typeof transcriptData === "string"
+          ? transcriptData
+          : JSON.stringify(transcriptData);
+      const summaryResult = await generateMeetingSummary(transcriptText);
 
       if (summaryResult.message !== "success") {
         return {

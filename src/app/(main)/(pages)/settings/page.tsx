@@ -137,7 +137,7 @@ const Settings = async () => {
         <ProfilePicture
           onDelete={removeProfileImage}
           userImage={user?.profileImage || ""}
-          onUpload={uploadProfileImage}
+          onUpload={async (url: string) => { await uploadProfileImage(url); }}
         />
         <ProfileForm user={user} onUpdate={updateUserInfo} />
       </div>
