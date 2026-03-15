@@ -25,6 +25,15 @@ import type { NextConfig } from "next";
  * - Performance optimizations for large data handling
  */
 const nextConfig: NextConfig = {
+  serverExternalPackages: [
+    "googleapis",
+    "google-auth-library",
+    "gcp-metadata",
+    "audio2text",
+    "node-speech-to-text",
+    "fluent-ffmpeg",
+    "ffmpeg-static",
+  ],
   /**
    * Image optimization configuration for external sources.
    *
@@ -84,6 +93,14 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "5mb",
     },
+  },
+  webpack: (config) => {
+    config.resolve = {
+      ...config.resolve,
+      symlinks: false,
+    };
+    config.cache = false;
+    return config;
   },
 };
 

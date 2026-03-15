@@ -13,7 +13,17 @@
       "mcp__claude_ai_Vercel__list_projects",
       "mcp__claude_ai_Vercel__deploy_to_vercel",
       "Bash(npx tsc:*)",
-      "Bash(npx shadcn@latest add popover --yes)"
+      "Bash(npx shadcn@latest add popover --yes)",
+      "Bash(node -e \"console.log\\(require\\(''./node_modules/next/package.json''\\).version\\)\")",
+      "Bash(npm run:*)",
+      "Bash(for f:*)",
+      "Bash(do)",
+      "Bash(sed -i '1s/^/export const dynamic = \"\"force-dynamic\"\";\\\\n\\\\n/' \"$f\")",
+      "Bash(done)",
+      "Bash(node -e \":*)",
+      "Bash(mv tailwind.config.ts tailwind.config.ts.bak)",
+      "Bash(rm -rf .next)",
+      "Bash(NODE_OPTIONS=\"--require ./debug-glob.js\" npm run build)"
     ],
     "additionalDirectories": [
       "d:\\vscode\\zyflow\\src\\app\\api\\webhooks"

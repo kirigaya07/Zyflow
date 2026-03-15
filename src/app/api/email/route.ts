@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { sendEmailViaGmail } from "@/app/(main)/(pages)/connections/_actions/email-connection";
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
