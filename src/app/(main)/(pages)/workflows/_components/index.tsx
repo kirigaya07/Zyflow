@@ -16,7 +16,7 @@
 
 import React from "react";
 import Workflow from "./workflow";
-import { onGetWorkflows } from "../_actions/workflow-connections";
+import { getLastRunsForWorkflows, onGetWorkflows } from "../_actions/workflow-connections";
 // import MoreCredits from "./more-creadits";
 
 /**
@@ -45,11 +45,22 @@ type Props = object;
  */
 const Workflows = async (props: Props) => {
   const workflows = await onGetWorkflows();
+  const lastRuns = await getLastRunsForWorkflows(
+    workflows?.map((w) => w.id) ?? []
+  );
+  const lastRunMap = new Map(lastRuns.map((r) => [r.workflowId, r]));
+
   return (
     <div className="relative flex flex-col gap-4 p-6">
       <section className="flex flex-col gap-4">
         {workflows?.length ? (
-          workflows.map((flow) => <Workflow key={flow.id} {...flow} />)
+          workflows.map((flow) => (
+            <Workflow
+              key={flow.id}
+              {...flow}
+              lastRun={lastRunMap.get(flow.id) ?? null}
+            />
+          ))
         ) : (
           <div className="mt-28 flex text-muted-foreground items-center justify-center">
             No Workflows

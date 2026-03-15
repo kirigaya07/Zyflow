@@ -4,7 +4,22 @@ import { postContentToWebHook } from "@/app/(main)/(pages)/connections/_actions/
 import { onCreateNewPageInDatabase } from "@/app/(main)/(pages)/connections/_actions/notion-connection";
 import { postMessageToSlack } from "@/app/(main)/(pages)/connections/_actions/slack-connection";
 import { sendEmailToMultipleRecipientsViaGmail } from "@/app/(main)/(pages)/connections/_actions/email-connection";
+import { safeDecrypt } from "@/lib/encryption";
+import { withRetry } from "@/lib/retry";
 import axios from "axios";
+
+async function logStep(
+  workflowId: string,
+  step: string,
+  status: "success" | "failed" | "skipped",
+  message?: string
+) {
+  try {
+    await db.executionLog.create({ data: { workflowId, step, status, message } });
+  } catch {
+    // Never let logging failures break execution
+  }
+}
 
 /**
  * Flow Route Handler
@@ -26,6 +41,13 @@ export async function GET(req: NextRequest) {
         { error: "flow_id parameter is required" },
         { status: 400 }
       );
+    }
+
+    // Validate cron secret to prevent unauthorized workflow triggering
+    const cronSecret = searchParams.get("secret");
+    if (process.env.CRON_SECRET && cronSecret !== process.env.CRON_SECRET) {
+      console.warn("❌ Invalid or missing CRON_SECRET for flow_id:", flowId);
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     console.log(`🔄 Continuing workflow execution for flow_id: ${flowId}`);
@@ -98,84 +120,84 @@ export async function GET(req: NextRequest) {
       console.log(`Executing step ${current + 1}/${flowPath.length}: ${step}`);
 
       if (step === "Discord") {
-        console.log("Executing Discord action");
         const discordMessage = await db.discordWebhook.findFirst({
           where: { userId: workflow.userId },
           select: { url: true },
         });
         if (discordMessage && workflow.discordTemplate) {
-          await postContentToWebHook(
-            workflow.discordTemplate,
-            discordMessage.url
-          );
-          console.log("Discord message sent successfully");
+          try {
+            await withRetry(
+              () => postContentToWebHook(workflow.discordTemplate!, discordMessage.url),
+              { label: "Discord", maxAttempts: 3 }
+            );
+            await logStep(workflow.id, "Discord", "success");
+          } catch (err) {
+            await logStep(workflow.id, "Discord", "failed", err instanceof Error ? err.message : String(err));
+          }
         } else {
-          console.log("No Discord webhook or template found");
+          await logStep(workflow.id, "Discord", "skipped", "No webhook or template configured");
         }
         flowPath.splice(current, 1);
         continue;
       }
 
       if (step === "Slack") {
-        console.log("Executing Slack action");
-        if (
-          workflow.slackAccessToken &&
-          workflow.slackChannels &&
-          workflow.slackChannels.length > 0 &&
-          workflow.slackTemplate
-        ) {
-          const channels = workflow.slackChannels.map((channel: string) => ({
-            label: "",
-            value: channel,
-          }));
-          await postMessageToSlack(
-            workflow.slackAccessToken,
-            channels,
-            workflow.slackTemplate
-          );
-          console.log("Slack message sent successfully");
+        if (workflow.slackAccessToken && workflow.slackChannels?.length && workflow.slackTemplate) {
+          const channels = workflow.slackChannels.map((ch: string) => ({ label: "", value: ch }));
+          try {
+            await withRetry(
+              () => postMessageToSlack(safeDecrypt(workflow.slackAccessToken!), channels, workflow.slackTemplate!),
+              { label: "Slack", maxAttempts: 3 }
+            );
+            await logStep(workflow.id, "Slack", "success");
+          } catch (err) {
+            await logStep(workflow.id, "Slack", "failed", err instanceof Error ? err.message : String(err));
+          }
         } else {
-          console.log("Slack configuration incomplete");
+          await logStep(workflow.id, "Slack", "skipped", "Incomplete configuration");
         }
         flowPath.splice(current, 1);
         continue;
       }
 
       if (step === "Notion") {
-        console.log("Executing Notion action");
         if (workflow.notionTemplate && workflow.notionDbId && workflow.notionAccessToken) {
-          const notionData = JSON.parse(workflow.notionTemplate);
-          const fileName =
-            typeof notionData === "string"
-              ? notionData
-              : notionData.name || "New Drive File";
-
-          await onCreateNewPageInDatabase(
-            workflow.notionDbId,
-            workflow.notionAccessToken,
-            fileName
-          );
-          console.log("Notion page created successfully");
+          try {
+            const notionData = JSON.parse(workflow.notionTemplate);
+            const fileName = typeof notionData === "string" ? notionData : notionData.name || "New Drive File";
+            await withRetry(
+              () => onCreateNewPageInDatabase(workflow.notionDbId!, safeDecrypt(workflow.notionAccessToken!), fileName),
+              { label: "Notion", maxAttempts: 3 }
+            );
+            await logStep(workflow.id, "Notion", "success");
+          } catch (err) {
+            await logStep(workflow.id, "Notion", "failed", err instanceof Error ? err.message : String(err));
+          }
         } else {
-          console.log("Notion configuration incomplete");
+          await logStep(workflow.id, "Notion", "skipped", "Incomplete configuration");
         }
         flowPath.splice(current, 1);
         continue;
       }
 
       if (step === "Email") {
-        console.log("Executing Email action");
-        if (workflow.emailRecipients && workflow.emailRecipients.length > 0) {
-          await sendEmailToMultipleRecipientsViaGmail(
-            workflow.emailRecipients,
-            workflow.emailSubject || "Drive Notification",
-            workflow.emailTemplate ||
-              "A new file has been uploaded to Google Drive.",
-            workflow.userId
-          );
-          console.log("Email sent successfully");
+        if (workflow.emailRecipients?.length) {
+          try {
+            await withRetry(
+              () => sendEmailToMultipleRecipientsViaGmail(
+                workflow.emailRecipients,
+                workflow.emailSubject || "Drive Notification",
+                workflow.emailTemplate || "A new file has been uploaded to Google Drive.",
+                workflow.userId
+              ),
+              { label: "Email", maxAttempts: 3 }
+            );
+            await logStep(workflow.id, "Email", "success");
+          } catch (err) {
+            await logStep(workflow.id, "Email", "failed", err instanceof Error ? err.message : String(err));
+          }
         } else {
-          console.log("No email recipients configured");
+          await logStep(workflow.id, "Email", "skipped", "No recipients configured");
         }
         flowPath.splice(current, 1);
         continue;
@@ -188,7 +210,7 @@ export async function GET(req: NextRequest) {
             "https://api.cron-job.org/jobs",
             {
               job: {
-                url: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NGROK_URI}/api/flow?flow_id=${workflow.id}`,
+                url: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NGROK_URI}/api/flow?flow_id=${workflow.id}&secret=${process.env.CRON_SECRET ?? ""}`,
                 enabled: "true",
                 schedule: {
                   timezone: "Europe/Istanbul",

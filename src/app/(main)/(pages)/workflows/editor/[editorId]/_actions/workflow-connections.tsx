@@ -23,14 +23,27 @@ export const onCreateNodesEdges = async (
 };
 
 export const onFlowPublish = async (workflowId: string, state: boolean) => {
-  console.log(state);
+  if (state) {
+    const workflow = await db.workflows.findUnique({
+      where: { id: workflowId },
+      select: { flowPath: true },
+    });
+
+    let path: string[] = [];
+    try {
+      path = workflow?.flowPath ? JSON.parse(workflow.flowPath) : [];
+    } catch {
+      path = [];
+    }
+
+    if (!path.length) {
+      return "Cannot publish: connect your nodes and save the workflow first.";
+    }
+  }
+
   const published = await db.workflows.update({
-    where: {
-      id: workflowId,
-    },
-    data: {
-      publish: state,
-    },
+    where: { id: workflowId },
+    data: { publish: state },
   });
 
   if (published.publish) return "Workflow published";

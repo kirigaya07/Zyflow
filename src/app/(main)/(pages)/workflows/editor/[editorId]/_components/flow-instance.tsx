@@ -28,12 +28,19 @@ const FlowInstance = ({ children, edges, nodes }: Props) => {
     );
 
     if (flow) toast.message(flow.message);
-  }, [nodeConnection]);
+  }, [nodes, edges, isFlow, pathname]);
 
   const onPublishWorkflow = useCallback(async () => {
+    // Always save the latest node/edge state before publishing
+    await onCreateNodesEdges(
+      pathname.split("/").pop()!,
+      JSON.stringify(nodes),
+      JSON.stringify(edges),
+      JSON.stringify(isFlow)
+    );
     const response = await onFlowPublish(pathname.split("/").pop()!, true);
     if (response) toast.message(response);
-  }, []);
+  }, [nodes, edges, isFlow, pathname]);
 
   const onAutomateFlow = async () => {
     const flows: any = [];

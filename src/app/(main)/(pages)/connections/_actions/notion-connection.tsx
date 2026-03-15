@@ -17,6 +17,7 @@
  */
 
 import { db } from "@/lib/db";
+import { encrypt, safeDecrypt } from "@/lib/encryption";
 import { currentUser } from "@clerk/nextjs/server";
 import { Client } from "@notionhq/client";
 
@@ -46,17 +47,11 @@ export const onNotionConnect = async (
 ) => {
   "use server";
   if (access_token) {
-    //check if notion is connected
+    //check if notion is connected (query by userId + workspaceId, not by token)
     const notion_connected = await db.notion.findFirst({
       where: {
-        accessToken: access_token,
-      },
-      include: {
-        connections: {
-          select: {
-            type: true,
-          },
-        },
+        userId: id,
+        workspaceId: workspace_id,
       },
     });
 
@@ -66,7 +61,7 @@ export const onNotionConnect = async (
         data: {
           userId: id,
           workspaceIcon: workspace_icon!,
-          accessToken: access_token,
+          accessToken: encrypt(access_token),
           workspaceId: workspace_id!,
           workspaceName: workspace_name!,
           databaseId: database_id,
@@ -90,14 +85,15 @@ export const getNotionConnection = async () => {
   const user = await currentUser();
   if (user) {
     const connection = await db.notion.findFirst({
-      where: {
-        userId: user.id,
-      },
+      where: { userId: user.id },
     });
-    if (connection) {
-      return connection;
-    }
+    if (!connection) return null;
+    return {
+      ...connection,
+      accessToken: safeDecrypt(connection.accessToken),
+    };
   }
+  return null;
 };
 
 /**

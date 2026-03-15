@@ -51,6 +51,7 @@ import { RefreshCw } from "lucide-react";
 import EditorCanvasIconHelper from "./editor-canvas-card-icon-helper";
 import RenderConnectionAccordion from "./render-connection-accordion";
 import RenderOutputAccordion from "./render-output-accordian";
+import ExecutionLogs from "./execution-logs";
 import { useZyflowStore } from "@/store";
 
 /**
@@ -149,6 +150,7 @@ const EditorCanvasSidebar = ({ nodes }: Props) => {
         <TabsList className="bg-transparent">
           <TabsTrigger value="actions">Actions</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="logs">Logs</TabsTrigger>
         </TabsList>
         <Separator />
         <TabsContent value="actions" className="flex flex-col gap-4 p-4">
@@ -219,6 +221,9 @@ const EditorCanvasSidebar = ({ nodes }: Props) => {
               />
             </AccordionItem>
           </Accordion>
+        </TabsContent>
+        <TabsContent value="logs" className="p-0">
+          <ExecutionLogs />
         </TabsContent>
       </Tabs>
     </aside>

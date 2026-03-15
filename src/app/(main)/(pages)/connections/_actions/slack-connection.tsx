@@ -18,6 +18,7 @@
 
 import { Option } from "@/components/ui/multiple-selector";
 import { db } from "@/lib/db";
+import { encrypt, safeDecrypt } from "@/lib/encryption";
 import { currentUser } from "@clerk/nextjs/server";
 import axios from "axios";
 
@@ -51,9 +52,9 @@ export const onSlackConnect = async (
 ): Promise<void> => {
   if (!slack_access_token) return;
 
+  // Check by userId + teamId (not by token, since token will be encrypted)
   const slackConnection = await db.slack.findFirst({
-    where: { slackAccessToken: slack_access_token },
-    include: { connections: true },
+    where: { userId: user_id, teamId: team_id },
   });
 
   if (!slackConnection) {
@@ -62,8 +63,8 @@ export const onSlackConnect = async (
         userId: user_id,
         appId: app_id,
         authedUserId: authed_user_id,
-        authedUserToken: authed_user_token,
-        slackAccessToken: slack_access_token,
+        authedUserToken: encrypt(authed_user_token),
+        slackAccessToken: encrypt(slack_access_token),
         botUserId: bot_user_id,
         teamId: team_id,
         teamName: team_name,
@@ -83,9 +84,15 @@ export const onSlackConnect = async (
 export const getSlackConnection = async () => {
   const user = await currentUser();
   if (user) {
-    return await db.slack.findFirst({
+    const connection = await db.slack.findFirst({
       where: { userId: user.id },
     });
+    if (!connection) return null;
+    return {
+      ...connection,
+      authedUserToken: safeDecrypt(connection.authedUserToken),
+      slackAccessToken: safeDecrypt(connection.slackAccessToken),
+    };
   }
   return null;
 };
@@ -181,11 +188,11 @@ export const postMessageToSlack = async (
     return { message: "Channel not selected" };
 
   try {
-    selectedSlackChannels
-      .map((channel) => channel?.value)
-      .forEach((channel) => {
-        postMessageInSlackChannel(slackAccessToken, channel, content);
-      });
+    await Promise.all(
+      selectedSlackChannels.map((channel) =>
+        postMessageInSlackChannel(slackAccessToken, channel.value, content)
+      )
+    );
   } catch (error) {
     return { message: "Message could not be sent to Slack" };
   }

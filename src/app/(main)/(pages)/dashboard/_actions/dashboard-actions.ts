@@ -1,80 +1,65 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import { PrismaClient } from "@/generated/prisma";
-
-const prisma = new PrismaClient();
+import { db } from "@/lib/db";
 
 export async function getDashboardStats() {
   try {
     const { userId } = await auth();
-    if (!userId) {
-      throw new Error("User not authenticated");
-    }
+    if (!userId) throw new Error("User not authenticated");
 
-    // Get user from database
-    const user = await prisma.user.findUnique({
+    const user = await db.user.findUnique({
       where: { clerkId: userId },
       include: {
-        workflows: true,
-        connections: true,
-        DiscordWebhook: true,
-        Notion: true,
-        Slack: true,
+        workflows: { select: { id: true, publish: true, zoomMeetingId: true } },
+        connections: { select: { id: true } },
+        DiscordWebhook: { select: { id: true } },
+        Notion: { select: { id: true } },
+        Slack: { select: { id: true } },
       },
     });
 
-    if (!user) {
-      throw new Error("User not found");
-    }
+    if (!user) throw new Error("User not found");
 
-    // Calculate real statistics
-    const totalWorkflows = user.workflows.length;
-    const activeAutomations = user.workflows.filter(
-      (w) => w.publish === true
-    ).length;
+    const workflowIds = user.workflows.map((w) => w.id);
+    const totalWorkflows = workflowIds.length;
+    const activeAutomations = user.workflows.filter((w) => w.publish).length;
+    const meetingsProcessed = user.workflows.filter((w) => w.zoomMeetingId).length;
 
-    // Count meetings processed (workflows with Zoom data)
-    const meetingsProcessed = user.workflows.filter(
-      (w) => w.zoomMeetingId
-    ).length;
+    // Real stats from execution logs
+    const [successCount, failedCount, totalRuns] = await Promise.all([
+      workflowIds.length
+        ? db.executionLog.count({ where: { workflowId: { in: workflowIds }, status: "success" } })
+        : Promise.resolve(0),
+      workflowIds.length
+        ? db.executionLog.count({ where: { workflowId: { in: workflowIds }, status: "failed" } })
+        : Promise.resolve(0),
+      workflowIds.length
+        ? db.executionLog.count({ where: { workflowId: { in: workflowIds } } })
+        : Promise.resolve(0),
+    ]);
 
-    // Calculate time saved (estimate: 30 min per meeting processed)
-    const totalSavings = meetingsProcessed * 0.5; // 30 minutes = 0.5 hours
-
-    // Calculate success rate (workflows with summaries vs total)
-    const successfulMeetings = user.workflows.filter(
-      (w) => w.zoomSummary
-    ).length;
     const successRate =
-      meetingsProcessed > 0
-        ? (successfulMeetings / meetingsProcessed) * 100
-        : 0;
-
-    // Estimate monthly cost (assuming $0.005 per meeting)
-    const monthlyCost = meetingsProcessed * 0.005;
-
-    // Count connections
-    const connectionCount = user.connections.length;
-    const googleDriveConnected = !!user.localGoogleId;
-    const discordConnected = user.DiscordWebhook.length > 0;
-    const notionConnected = user.Notion.length > 0;
-    const slackConnected = user.Slack.length > 0;
+      totalRuns > 0 ? Math.round((successCount / totalRuns) * 100 * 10) / 10 : 0;
+    const totalSavings = Math.round(successCount * 0.5 * 10) / 10;
+    const monthlyCost = Math.round(totalRuns * 0.005 * 100) / 100;
 
     return {
       totalWorkflows,
       activeAutomations,
       meetingsProcessed,
-      totalSavings: Math.round(totalSavings * 10) / 10, // Round to 1 decimal
-      successRate: Math.round(successRate * 10) / 10, // Round to 1 decimal
-      monthlyCost: Math.round(monthlyCost * 100) / 100, // Round to 2 decimals
-      connectionCount,
-      googleDriveConnected,
-      discordConnected,
-      notionConnected,
-      slackConnected,
-      emailConnected: true, // Email is always connected via Google OAuth
-      zoomConnected: true, // Zoom uses Google OAuth
+      totalRuns,
+      successCount,
+      failedCount,
+      totalSavings,
+      successRate,
+      monthlyCost,
+      googleDriveConnected: !!user.localGoogleId,
+      discordConnected: user.DiscordWebhook.length > 0,
+      notionConnected: user.Notion.length > 0,
+      slackConnected: user.Slack.length > 0,
+      emailConnected: true,
+      zoomConnected: true,
     };
   } catch (error) {
     console.error("Error fetching dashboard stats:", error);
@@ -85,50 +70,65 @@ export async function getDashboardStats() {
 export async function getRecentActivity() {
   try {
     const { userId } = await auth();
-    if (!userId) {
-      throw new Error("User not authenticated");
+    if (!userId) throw new Error("User not authenticated");
+
+    const workflows = await db.workflows.findMany({
+      where: { userId },
+      select: { id: true, name: true, publish: true, zoomMeetingId: true, zoomMeetingTitle: true, zoomSummary: true, zoomTranscript: true },
+    });
+
+    const workflowIds = workflows.map((w) => w.id);
+    const workflowMap = new Map(workflows.map((w) => [w.id, w]));
+
+    // Get the 10 most recent execution log entries (real activity)
+    const recentLogs = workflowIds.length
+      ? await db.executionLog.findMany({
+          where: { workflowId: { in: workflowIds } },
+          orderBy: { createdAt: "desc" },
+          take: 10,
+          select: { id: true, workflowId: true, step: true, status: true, createdAt: true },
+        })
+      : [];
+
+    if (recentLogs.length > 0) {
+      return recentLogs.map((log) => {
+        const workflow = workflowMap.get(log.workflowId);
+        const seconds = Math.floor((Date.now() - new Date(log.createdAt).getTime()) / 1000);
+        const time =
+          seconds < 60
+            ? "Just now"
+            : seconds < 3600
+            ? `${Math.floor(seconds / 60)}m ago`
+            : seconds < 86400
+            ? `${Math.floor(seconds / 3600)}h ago`
+            : `${Math.floor(seconds / 86400)}d ago`;
+
+        return {
+          id: log.id,
+          type: "execution",
+          title: `${workflow?.name ?? "Workflow"} → ${log.step}`,
+          time,
+          status: log.status,
+          workflowId: log.workflowId,
+          hasSummary: !!workflow?.zoomSummary,
+          hasTranscript: !!workflow?.zoomTranscript,
+          isZoomWorkflow: !!workflow?.zoomMeetingId,
+        };
+      });
     }
 
-    // Get recent workflows - show all workflows, not just Zoom ones
-    const recentWorkflows = await prisma.workflows.findMany({
-      where: {
-        userId: userId,
-      },
-      orderBy: { id: "desc" },
-      take: 10,
-    });
-
-    const activities = recentWorkflows.map((workflow, index) => {
-      const hoursAgo = index; // Simple mock for now - in real app, use createdAt
-      const duration = "45 min"; // Mock duration
-
-      // Determine if this is a Zoom workflow or regular workflow
-      const isZoomWorkflow = !!workflow.zoomMeetingId;
-      const title = isZoomWorkflow
-        ? workflow.zoomMeetingTitle || `Zoom Meeting ${index + 1}`
-        : workflow.name || `Workflow ${index + 1}`;
-
-      return {
-        id: workflow.id,
-        type: isZoomWorkflow ? "meeting" : "workflow",
-        title: title,
-        time: hoursAgo === 0 ? "Just now" : `${hoursAgo} hours ago`,
-        status: isZoomWorkflow
-          ? workflow.zoomSummary
-            ? "completed"
-            : "processing"
-          : workflow.publish
-          ? "active"
-          : "draft",
-        duration: isZoomWorkflow ? duration : undefined,
-        workflowId: workflow.id,
-        hasSummary: !!workflow.zoomSummary,
-        hasTranscript: !!workflow.zoomTranscript,
-        isZoomWorkflow: isZoomWorkflow,
-      };
-    });
-
-    return activities;
+    // Fallback: show workflows when no logs yet
+    return workflows.slice(0, 10).map((workflow) => ({
+      id: workflow.id,
+      type: workflow.zoomMeetingId ? "meeting" : "workflow",
+      title: workflow.zoomMeetingTitle || workflow.name,
+      time: "No runs yet",
+      status: workflow.publish ? "active" : "draft",
+      workflowId: workflow.id,
+      hasSummary: !!workflow.zoomSummary,
+      hasTranscript: !!workflow.zoomTranscript,
+      isZoomWorkflow: !!workflow.zoomMeetingId,
+    }));
   } catch (error) {
     console.error("Error fetching recent activity:", error);
     throw error;
@@ -138,25 +138,19 @@ export async function getRecentActivity() {
 export async function getConnectionStatus() {
   try {
     const { userId } = await auth();
-    if (!userId) {
-      throw new Error("User not authenticated");
-    }
+    if (!userId) throw new Error("User not authenticated");
 
-    const user = await prisma.user.findUnique({
+    const user = await db.user.findUnique({
       where: { clerkId: userId },
       include: {
-        connections: true,
-        DiscordWebhook: true,
-        Notion: true,
-        Slack: true,
+        DiscordWebhook: { select: { id: true } },
+        Notion: { select: { id: true } },
+        Slack: { select: { id: true } },
       },
     });
 
-    if (!user) {
-      throw new Error("User not found");
-    }
+    if (!user) throw new Error("User not found");
 
-    // Align with Connections page behavior: Drive, Email, Zoom considered connected by default
     return {
       googleDrive: true,
       zoom: true,
@@ -174,46 +168,23 @@ export async function getConnectionStatus() {
 export async function getAutomationStatus() {
   try {
     const { userId } = await auth();
-    if (!userId) {
-      throw new Error("User not authenticated");
-    }
+    if (!userId) throw new Error("User not authenticated");
 
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId },
-      include: {
-        workflows: true,
-      },
+    const workflows = await db.workflows.findMany({
+      where: { userId },
+      select: { id: true, publish: true, zoomMeetingId: true },
     });
 
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    const totalWorkflows = user.workflows.length;
-    const activeWorkflows = user.workflows.filter(
-      (w) => w.publish === true
-    ).length;
-    const zoomWorkflows = user.workflows.filter((w) => w.zoomMeetingId).length;
-
-    // Calculate percentages
+    const totalWorkflows = workflows.length;
+    const activeWorkflows = workflows.filter((w) => w.publish).length;
+    const zoomWorkflows = workflows.filter((w) => w.zoomMeetingId).length;
     const zoomMonitoringProgress =
-      totalWorkflows > 0 ? (zoomWorkflows / totalWorkflows) * 100 : 0;
-    const whisperProgress = zoomWorkflows > 0 ? 92 : 0; // Mock for now
-    const aiSummaryProgress = zoomWorkflows > 0 ? 78 : 0; // Mock for now
+      totalWorkflows > 0 ? Math.round((zoomWorkflows / totalWorkflows) * 100) : 0;
 
     return {
-      zoomMonitoring: {
-        active: activeWorkflows > 0,
-        progress: Math.round(zoomMonitoringProgress),
-      },
-      whisperTranscription: {
-        enabled: zoomWorkflows > 0,
-        progress: whisperProgress,
-      },
-      aiSummaries: {
-        running: zoomWorkflows > 0,
-        progress: aiSummaryProgress,
-      },
+      zoomMonitoring: { active: activeWorkflows > 0, progress: zoomMonitoringProgress },
+      whisperTranscription: { enabled: zoomWorkflows > 0, progress: zoomWorkflows > 0 ? 92 : 0 },
+      aiSummaries: { running: zoomWorkflows > 0, progress: zoomWorkflows > 0 ? 78 : 0 },
       totalWorkflows,
       activeWorkflows,
       zoomWorkflows,

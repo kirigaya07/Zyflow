@@ -132,4 +132,32 @@ model Workflows {
   description       String
   User              User     @relation(fields: [userId], references: [clerkId])
   userId            String
+
+  @@index([userId])
+}
+
+/// Per-step execution log for every workflow run. Gives users visibility into
+/// what ran, what succeeded, and what failed — replaces console.log debugging.
+model ExecutionLog {
+  id         String   @id @default(uuid())
+  workflowId String
+  step       String   // "Discord" | "Slack" | "Notion" | "Email" | "Wait" | "AI"
+  status     String   // "success" | "failed" | "skipped"
+  message    String?
+  createdAt  DateTime @default(now())
+
+  @@index([workflowId])
+  @@index([createdAt])
+}
+
+/// Stores processed webhook event IDs to prevent duplicate workflow executions.
+/// Records older than 24h can be safely deleted.
+model WebhookEvent {
+  id          String   @id @default(uuid())
+  /// Composite key: "<resource-id>-<message-number>" for Drive, or a unique event ID for other sources
+  messageId   String   @unique
+  source      String   // "drive" | "zoom" | "cron"
+  processedAt DateTime @default(now())
+
+  @@index([processedAt])
 }

@@ -19,52 +19,62 @@ export async function POST(req: NextRequest) {
 
     // Get headers
     const headersList = await headers();
-    // const zoomSignature = headersList.get("x-zm-signature");
-    // const zoomTimestamp = headersList.get("x-zm-request-timestamp");
+    const secretToken = process.env.ZOOM_WEBHOOK_TOKEN;
 
-    // Log all headers for debugging (only for validation events)
-    if (event === "endpoint.url_validation") {
-      console.log("All headers:", Array.from(headersList.entries()));
-    }
-
-    // Handle URL validation event (no authentication required)
+    // Handle URL validation event — Zoom sends this to register the endpoint, no signature yet
     if (event === "endpoint.url_validation") {
       console.log("✅ Zoom URL validation received");
-
-      // Get the secret token from custom header if present, otherwise from env
-      const customToken = headersList.get("x-zoom-token");
-      const secretToken = customToken || process.env.ZOOM_WEBHOOK_TOKEN;
       const plainToken = payload.plainToken;
-
-      console.log("Sending validation response with plainToken:", plainToken);
-      console.log(
-        "Using token:",
-        customToken ? "from header (x-zoom-token)" : "from env"
-      );
-
-      // Generate encryptedToken using HMAC SHA-256
       let encryptedToken = plainToken;
       if (secretToken) {
         encryptedToken = crypto
           .createHmac("sha256", secretToken)
           .update(plainToken)
           .digest("hex");
-        console.log("Generated encryptedToken:", encryptedToken);
-      } else {
-        console.log(
-          "No secret token found, using plainToken as encryptedToken"
-        );
       }
-
-      const response = {
-        plainToken: plainToken,
-        encryptedToken: encryptedToken,
-      };
-
-      console.log("Validation response:", JSON.stringify(response, null, 2));
-
-      return NextResponse.json(response);
+      return NextResponse.json({ plainToken, encryptedToken });
     }
+
+    // Validate HMAC-SHA256 signature for all other events
+    const zoomSignature = headersList.get("x-zm-signature");
+    const zoomTimestamp = headersList.get("x-zm-request-timestamp");
+
+    if (!secretToken) {
+      console.error("❌ ZOOM_WEBHOOK_TOKEN not configured");
+      return NextResponse.json({ message: "Webhook not configured" }, { status: 500 });
+    }
+
+    if (!zoomSignature || !zoomTimestamp) {
+      console.warn("❌ Missing Zoom signature headers");
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    // Reject requests older than 5 minutes to prevent replay attacks
+    const timestampAge = Math.abs(Date.now() / 1000 - parseInt(zoomTimestamp));
+    if (timestampAge > 300) {
+      console.warn("❌ Zoom webhook timestamp too old:", timestampAge, "seconds");
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const rawBody = JSON.stringify(body);
+    const expectedSignature =
+      "v0=" +
+      crypto
+        .createHmac("sha256", secretToken)
+        .update(`v0:${zoomTimestamp}:${rawBody}`)
+        .digest("hex");
+
+    if (
+      !crypto.timingSafeEqual(
+        Buffer.from(zoomSignature),
+        Buffer.from(expectedSignature)
+      )
+    ) {
+      console.warn("❌ Invalid Zoom webhook signature");
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    console.log("✅ Zoom signature verified");
 
     // Handle recording events
     if (

@@ -20,6 +20,7 @@
 
 import { Option } from "@/components/ui/multiple-selector";
 import { db } from "@/lib/db";
+import { encrypt } from "@/lib/encryption";
 import { auth, currentUser } from "@clerk/nextjs/server";
 
 /**
@@ -62,14 +63,27 @@ export const getGoogleListener = async () => {
  * @returns Success message indicating current publish status
  */
 export const onFlowPublish = async (workflowId: string, state: boolean) => {
-  console.log(state);
+  if (state) {
+    const workflow = await db.workflows.findUnique({
+      where: { id: workflowId },
+      select: { flowPath: true },
+    });
+
+    let path: string[] = [];
+    try {
+      path = workflow?.flowPath ? JSON.parse(workflow.flowPath) : [];
+    } catch {
+      path = [];
+    }
+
+    if (!path.length) {
+      return "Cannot publish: connect your nodes and save the workflow first.";
+    }
+  }
+
   const published = await db.workflows.update({
-    where: {
-      id: workflowId,
-    },
-    data: {
-      publish: state,
-    },
+    where: { id: workflowId },
+    data: { publish: state },
   });
 
   if (published.publish) return "Workflow published";
@@ -137,7 +151,7 @@ export const onCreateNodeTemplate = async (
       },
       data: {
         slackTemplate: content,
-        slackAccessToken: accessToken,
+        slackAccessToken: accessToken ? encrypt(accessToken) : undefined,
       },
     });
 
@@ -164,7 +178,7 @@ export const onCreateNodeTemplate = async (
       },
       data: {
         notionTemplate: content,
-        notionAccessToken: accessToken,
+        notionAccessToken: accessToken ? encrypt(accessToken) : undefined,
         notionDbId: notionDbId,
       },
     });
@@ -295,4 +309,81 @@ export const onGetNodesEdges = async (flowId: string) => {
     },
   });
   if (nodesEdges?.nodes && nodesEdges?.edges) return nodesEdges;
+};
+
+/**
+ * Returns the last 50 execution log entries for a workflow, newest first.
+ * Only returns logs for workflows owned by the current user.
+ */
+export const getWorkflowExecutionLogs = async (workflowId: string) => {
+  const { userId } = await auth();
+  if (!userId) return null;
+
+  const workflow = await db.workflows.findUnique({
+    where: { id: workflowId, userId },
+    select: { id: true },
+  });
+  if (!workflow) return null;
+
+  return db.executionLog.findMany({
+    where: { workflowId },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+  });
+};
+
+/**
+ * Permanently deletes a workflow owned by the current user.
+ */
+export const deleteWorkflow = async (workflowId: string) => {
+  const { userId } = await auth();
+  if (!userId) return { error: "Unauthorized" };
+
+  await db.workflows.delete({ where: { id: workflowId, userId } });
+  return { message: "Workflow deleted" };
+};
+
+/**
+ * Creates an exact copy of a workflow (unpublished) with "(Copy)" appended to the name.
+ */
+export const duplicateWorkflow = async (workflowId: string) => {
+  const { userId } = await auth();
+  if (!userId) return { error: "Unauthorized" };
+
+  const source = await db.workflows.findUnique({
+    where: { id: workflowId, userId },
+  });
+  if (!source) return { error: "Workflow not found" };
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { id, ...rest } = source;
+  const copy = await db.workflows.create({
+    data: { ...rest, name: `${rest.name} (Copy)`, publish: false },
+  });
+
+  return { message: "Workflow duplicated", id: copy.id };
+};
+
+/**
+ * Returns the most recent ExecutionLog entry for each of the given workflow IDs.
+ * Used by the workflow list to show last-run status on each card.
+ */
+export const getLastRunsForWorkflows = async (workflowIds: string[]) => {
+  if (!workflowIds.length) return [];
+
+  const rows = await Promise.all(
+    workflowIds.map((id) =>
+      db.executionLog.findFirst({
+        where: { workflowId: id },
+        orderBy: { createdAt: "desc" },
+        select: { workflowId: true, status: true, createdAt: true },
+      })
+    )
+  );
+
+  return rows.filter(Boolean) as {
+    workflowId: string;
+    status: string;
+    createdAt: Date;
+  }[];
 };

@@ -146,6 +146,27 @@ const editorReducer = (
           edges: action.payload.edges,
         },
       };
+
+    case "UPDATE_NODE": {
+      const updatedEditor = {
+        ...state.editor,
+        elements: action.payload.elements,
+      };
+      return {
+        ...state,
+        editor: updatedEditor,
+        history: {
+          ...state.history,
+          // Trim any redo states forward of current position, then append
+          history: [
+            ...state.history.history.slice(0, state.history.currentIndex + 1),
+            updatedEditor,
+          ],
+          currentIndex: state.history.currentIndex + 1,
+        },
+      };
+    }
+
     case "SELECTED_ELEMENT":
       return {
         ...state,
