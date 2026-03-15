@@ -2,7 +2,7 @@ import React from "react";
 import BillingDashboard from "./_components/billing-dashboard";
 
 type Props = {
-  searchParams?: { [key: string]: string | undefined };
+  searchParams?: Promise<{ [key: string]: string | undefined }>;
 };
 
 const Billing = async (props: Props) => {
