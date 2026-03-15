@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2, XCircle, MinusCircle, Activity } from "lucide-react";
 
-type SearchParams = { [key: string]: string | undefined };
 
 function timeAgo(date: Date): string {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
@@ -37,9 +36,10 @@ const statusConfig = {
 export default async function LogsPage({
   searchParams,
 }: {
-  searchParams: SearchParams;
+  searchParams: Promise<{ [key: string]: string | undefined }>;
 }) {
   const { userId } = await auth();
+  const resolvedParams = await searchParams;
 
   // Get user's workflows for filter dropdown
   const workflows = userId
@@ -50,9 +50,9 @@ export default async function LogsPage({
       })
     : [];
 
-  const selectedStatus = searchParams?.status;
-  const selectedWorkflow = searchParams?.workflow;
-  const page = parseInt(searchParams?.page ?? "1");
+  const selectedStatus = resolvedParams?.status;
+  const selectedWorkflow = resolvedParams?.workflow;
+  const page = parseInt(resolvedParams?.page ?? "1");
   const pageSize = 25;
 
   const [{ logs, total }, stats] = await Promise.all([
@@ -133,7 +133,7 @@ export default async function LogsPage({
           {["all", "success", "failed", "skipped"].map((s) => {
             const isActive =
               s === "all" ? !selectedStatus : selectedStatus === s;
-            const params = new URLSearchParams(searchParams as Record<string, string>);
+            const params = new URLSearchParams(resolvedParams as Record<string, string>);
             if (s === "all") params.delete("status");
             else params.set("status", s);
             params.delete("page");
@@ -159,7 +159,7 @@ export default async function LogsPage({
             {[{ id: "", name: "All Workflows" }, ...workflows].map((w) => {
               const isActive =
                 w.id === "" ? !selectedWorkflow : selectedWorkflow === w.id;
-              const params = new URLSearchParams(searchParams as Record<string, string>);
+              const params = new URLSearchParams(resolvedParams as Record<string, string>);
               if (w.id === "") params.delete("workflow");
               else params.set("workflow", w.id);
               params.delete("page");
@@ -260,7 +260,7 @@ export default async function LogsPage({
       {totalPages > 1 && (
         <div className="flex justify-center gap-2">
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
-            const params = new URLSearchParams(searchParams as Record<string, string>);
+            const params = new URLSearchParams(resolvedParams as Record<string, string>);
             params.set("page", String(p));
             return (
               <a
