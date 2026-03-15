@@ -20,7 +20,7 @@ import EditorCanvas from "./_components/editor-canvas";
  * Receives dynamic editorId from the route parameters.
  */
 type Props = {
-  params: { editorId: string };
+  params: Promise<{ editorId: string }>;
 };
 
 /**
