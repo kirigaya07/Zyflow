@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { clients, products } from "@/lib/constants";
 import { CheckIcon } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   //WIP: remove fault IMAge for home page
@@ -191,6 +192,13 @@ export default function Home() {
           </CardContainer>
         </div>
       </section>
+      <footer className="w-full border-t border-neutral-800 bg-neutral-950 py-6 mt-12">
+        <div className="flex items-center justify-center gap-6 text-sm text-neutral-400">
+          <span>© {new Date().getFullYear()} Zyflow. All rights reserved.</span>
+          <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+          <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+        </div>
+      </footer>
     </main>
   );
 }
