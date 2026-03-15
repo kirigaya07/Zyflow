@@ -6,7 +6,7 @@
  * prevent multiple database connections in development mode.
  */
 
-import { PrismaClient } from "../generated/prisma";
+import { PrismaClient } from "@prisma/client";
 
 /**
  * Global declaration for Prisma client to enable singleton pattern.
