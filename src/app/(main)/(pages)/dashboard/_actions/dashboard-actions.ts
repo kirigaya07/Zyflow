@@ -1,12 +1,30 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+
+async function getOrCreateUser(clerkId: string) {
+  const existing = await db.user.findUnique({ where: { clerkId } });
+  if (existing) return existing;
+
+  const clerkUser = await currentUser();
+  if (!clerkUser) throw new Error("User not authenticated");
+
+  const email = clerkUser.emailAddresses[0]?.emailAddress ?? "";
+  const name = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ");
+  const profileImage = clerkUser.imageUrl ?? "";
+
+  return db.user.create({
+    data: { clerkId, email, name, profileImage, tier: "Free", credits: "10" },
+  });
+}
 
 export async function getDashboardStats() {
   try {
     const { userId } = await auth();
     if (!userId) throw new Error("User not authenticated");
+
+    await getOrCreateUser(userId);
 
     const user = await db.user.findUnique({
       where: { clerkId: userId },
@@ -26,7 +44,6 @@ export async function getDashboardStats() {
     const activeAutomations = user.workflows.filter((w) => w.publish).length;
     const meetingsProcessed = user.workflows.filter((w) => w.zoomMeetingId).length;
 
-    // Real stats from execution logs
     const [successCount, failedCount, totalRuns] = await Promise.all([
       workflowIds.length
         ? db.executionLog.count({ where: { workflowId: { in: workflowIds }, status: "success" } })
@@ -80,7 +97,6 @@ export async function getRecentActivity() {
     const workflowIds = workflows.map((w) => w.id);
     const workflowMap = new Map(workflows.map((w) => [w.id, w]));
 
-    // Get the 10 most recent execution log entries (real activity)
     const recentLogs = workflowIds.length
       ? await db.executionLog.findMany({
           where: { workflowId: { in: workflowIds } },
@@ -117,7 +133,6 @@ export async function getRecentActivity() {
       });
     }
 
-    // Fallback: show workflows when no logs yet
     return workflows.slice(0, 10).map((workflow) => ({
       id: workflow.id,
       type: workflow.zoomMeetingId ? "meeting" : "workflow",
@@ -139,6 +154,8 @@ export async function getConnectionStatus() {
   try {
     const { userId } = await auth();
     if (!userId) throw new Error("User not authenticated");
+
+    await getOrCreateUser(userId);
 
     const user = await db.user.findUnique({
       where: { clerkId: userId },
