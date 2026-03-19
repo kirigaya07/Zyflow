@@ -77,7 +77,11 @@ export type EditorCanvasTypes =
   | "Google Calendar"
   | "Trigger"
   | "Action"
-  | "Wait";
+  | "Wait"
+  | "HTTP Request"
+  | "Webhook Trigger"
+  | "Code"
+  | "Set Fields";
 
 /**
  * Interface for editor canvas card/node configuration.

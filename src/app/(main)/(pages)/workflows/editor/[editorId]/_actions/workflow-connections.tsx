@@ -1,6 +1,19 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { auth } from "@clerk/nextjs/server";
+
+/**
+ * Returns the workflow name and publish status — used by the editor toolbar.
+ */
+export const getWorkflowMeta = async (workflowId: string) => {
+  const { userId } = await auth();
+  if (!userId) return null;
+  return db.workflows.findUnique({
+    where: { id: workflowId, userId },
+    select: { name: true, publish: true },
+  });
+};
 
 export const onCreateNodesEdges = async (
   flowId: string,
@@ -8,44 +21,13 @@ export const onCreateNodesEdges = async (
   edges: string,
   flowPath: string
 ) => {
+  const { userId } = await auth();
+  if (!userId) return { message: "Unauthorized" };
+
   const flow = await db.workflows.update({
-    where: {
-      id: flowId,
-    },
-    data: {
-      nodes,
-      edges,
-      flowPath: flowPath,
-    },
+    where: { id: flowId, userId },
+    data: { nodes, edges, flowPath },
   });
 
   if (flow) return { message: "flow saved" };
-};
-
-export const onFlowPublish = async (workflowId: string, state: boolean) => {
-  if (state) {
-    const workflow = await db.workflows.findUnique({
-      where: { id: workflowId },
-      select: { flowPath: true },
-    });
-
-    let path: string[] = [];
-    try {
-      path = workflow?.flowPath ? JSON.parse(workflow.flowPath) : [];
-    } catch {
-      path = [];
-    }
-
-    if (!path.length) {
-      return "Cannot publish: connect your nodes and save the workflow first.";
-    }
-  }
-
-  const published = await db.workflows.update({
-    where: { id: workflowId },
-    data: { publish: state },
-  });
-
-  if (published.publish) return "Workflow published";
-  return "Workflow unpublished";
 };

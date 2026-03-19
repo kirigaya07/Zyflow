@@ -1,49 +1,27 @@
-/**
- * Workflows Container Component
- *
- * This component serves as the main container for displaying all user workflows:
- * - Fetches and displays user's workflow automations
- * - Handles empty state when no workflows exist
- * - Provides consistent layout and spacing
- * - Maps workflows to individual Workflow components
- *
- * Features:
- * - Server-side workflow data fetching
- * - Empty state handling with user-friendly message
- * - Responsive grid layout for workflow cards
- * - Automatic workflow list updates
- */
-
 import React from "react";
 import Workflow from "./workflow";
 import { getLastRunsForWorkflows, onGetWorkflows } from "../_actions/workflow-connections";
-// import MoreCredits from "./more-creadits";
+import { EditorCanvasTypes } from "@/lib/types";
 
-/**
- * Props interface for the Workflows container component.
- * Currently uses generic object type for future extensibility.
- */
 type Props = object;
 
-/**
- * Workflows container component that fetches and displays all user workflows.
- *
- * This component:
- * - Fetches workflows from the database server-side
- * - Renders individual Workflow components for each automation
- * - Shows empty state message when no workflows exist
- * - Provides consistent spacing and layout
- *
- * Layout features:
- * - Responsive flexbox layout
- * - Consistent gap spacing between workflow cards
- * - Centered empty state message
- * - Proper padding and margins
- *
- * @param props - Component props (currently unused but available for future extensions)
- * @returns JSX.Element - Container with workflow list or empty state
- */
-const Workflows = async (props: Props) => {
+/** Extract unique node types from a workflow's serialized nodes JSON. */
+function parseNodeTypes(nodesJson: string | null | undefined): EditorCanvasTypes[] {
+  if (!nodesJson) return [];
+  try {
+    const nodes: { type?: string; data?: { type?: string } }[] = JSON.parse(nodesJson);
+    const seen = new Set<string>();
+    for (const n of nodes) {
+      const t = n.type ?? n.data?.type;
+      if (t) seen.add(t);
+    }
+    return Array.from(seen) as EditorCanvasTypes[];
+  } catch {
+    return [];
+  }
+}
+
+const Workflows = async (_props: Props) => {
   const workflows = await onGetWorkflows();
   const lastRuns = await getLastRunsForWorkflows(
     workflows?.map((w) => w.id) ?? []
@@ -51,23 +29,35 @@ const Workflows = async (props: Props) => {
   const lastRunMap = new Map(lastRuns.map((r) => [r.workflowId, r]));
 
   return (
-    <div className="relative flex flex-col gap-4 p-6">
-      <section className="flex flex-col gap-4">
-        {workflows?.length ? (
-          workflows.map((flow) => (
-            <Workflow
-              key={flow.id}
-              {...flow}
-              lastRun={lastRunMap.get(flow.id) ?? null}
-            />
-          ))
-        ) : (
-          <div className="mt-28 flex text-muted-foreground items-center justify-center">
-            No Workflows
+    <section className="flex flex-col gap-2">
+      {workflows?.length ? (
+        workflows.map((flow) => (
+          <Workflow
+            key={flow.id}
+            id={flow.id}
+            name={flow.name}
+            description={flow.description}
+            publish={flow.publish}
+            lastRun={lastRunMap.get(flow.id) ?? null}
+            nodeTypes={parseNodeTypes(flow.nodes)}
+          />
+        ))
+      ) : (
+        <div className="flex flex-col items-center justify-center py-24 gap-3 text-center">
+          <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-muted-foreground">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M13 10V3L4 14h7v7l9-11h-7z" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </div>
-        )}
-      </section>
-    </div>
+          <div>
+            <p className="text-sm font-medium text-foreground">No workflows yet</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Press <kbd className="px-1 py-0.5 text-[10px] font-mono rounded bg-secondary border border-border">+</kbd> to create your first automation.
+            </p>
+          </div>
+        </div>
+      )}
+    </section>
   );
 };
 

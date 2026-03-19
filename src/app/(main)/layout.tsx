@@ -4,13 +4,15 @@ import React from "react";
 
 type Props = { children: React.ReactNode };
 
-const Layout = (props: Props) => {
+const Layout = ({ children }: Props) => {
   return (
-    <div className="flex overflow-hidden h-screen">
+    <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar />
-      <div className="w-full">
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <InfoBar />
-        {props.children}
+        <main className="flex-1 overflow-auto min-h-0">
+          {children}
+        </main>
       </div>
     </div>
   );

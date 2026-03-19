@@ -34,7 +34,7 @@ import { X } from "lucide-react";
 type Props = {
   userImage: string | null;
   onDelete?: () => Promise<any>;
-  onUpload: (url: string) => Promise<void>;
+  onUpload: (url: string) => Promise<unknown>;
 };
 
 /**

@@ -90,10 +90,8 @@ export const sendEmailViaGmail = async (
       },
     });
 
-    console.log("Email sent successfully via Gmail API:", result.data.id);
     return { message: "success", messageId: result.data.id };
   } catch (error) {
-    console.error("Error sending email via Gmail API:", error);
     return {
       message: "failed",
       error: error instanceof Error ? error.message : "Unknown error",
@@ -170,16 +168,8 @@ export const sendEmailToMultipleRecipientsViaGmail = async (
       },
     });
 
-    console.log(
-      "Email sent to multiple recipients via Gmail API:",
-      result.data.id
-    );
     return { message: "success", messageId: result.data.id };
   } catch (error) {
-    console.error(
-      "Error sending email to multiple recipients via Gmail API:",
-      error
-    );
     return {
       message: "failed",
       error: error instanceof Error ? error.message : "Unknown error",

@@ -3,12 +3,15 @@ import React from "react";
 import {
   Calendar,
   CircuitBoard,
+  Code2,
   Database,
   GitBranch,
+  Globe,
   HardDrive,
   Mail,
+  MessageSquare,
   MousePointerClickIcon,
-  Plus,
+  Pencil,
   Slack,
   Timer,
   Webhook,
@@ -16,34 +19,51 @@ import {
 } from "lucide-react";
 import { EditorCanvasTypes } from "@/lib/types";
 
-type Props = { type: EditorCanvasTypes };
+type Props = {
+  type: EditorCanvasTypes;
+  /** Icon size in pixels. Defaults to 20. */
+  size?: number;
+};
 
-const EditorCanvasIconHelper = ({ type }: Props) => {
+const EditorCanvasIconHelper = ({ type, size = 20 }: Props) => {
+  const props = { size, className: "flex-shrink-0" };
   switch (type) {
     case "Email":
-      return <Mail className="flex-shrink-0" size={30} />;
+      return <Mail {...props} />;
     case "Condition":
-      return <GitBranch className="flex-shrink-0" size={30} />;
+      return <GitBranch {...props} />;
     case "AI":
-      return <CircuitBoard className="flex-shrink-0" size={30} />;
+      return <CircuitBoard {...props} />;
     case "Slack":
-      return <Slack className="flex-shrink-0" size={30} />;
+      return <Slack {...props} />;
     case "Google Drive":
-      return <HardDrive className="flex-shrink-0" size={30} />;
+      return <HardDrive {...props} />;
     case "Notion":
-      return <Database className="flex-shrink-0" size={30} />;
+      return <Database {...props} />;
     case "Custom Webhook":
-      return <Webhook className="flex-shrink-0" size={30} />;
+      return <Webhook {...props} />;
     case "Google Calendar":
-      return <Calendar className="flex-shrink-0" size={30} />;
+      return <Calendar {...props} />;
     case "Trigger":
-      return <MousePointerClickIcon className="flex-shrink-0" size={30} />;
+      return <MousePointerClickIcon {...props} />;
     case "Action":
-      return <Zap className="flex-shrink-0" size={30} />;
+      return <Zap {...props} />;
     case "Wait":
-      return <Timer className="flex-shrink-0" size={30} />;
+      return <Timer {...props} />;
+    case "HTTP Request":
+      return <Globe {...props} />;
+    case "Webhook Trigger":
+      return <Webhook {...props} />;
+    case "Code":
+      return <Code2 {...props} />;
+    case "Discord":
+      return <MessageSquare {...props} />;
+    case "Zoom":
+      return <MessageSquare {...props} />;
+    case "Set Fields":
+      return <Pencil {...props} />;
     default:
-      return <Zap className="flex-shrink-0" size={30} />;
+      return <Zap {...props} />;
   }
 };
 

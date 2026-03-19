@@ -63,9 +63,12 @@ export const getGoogleListener = async () => {
  * @returns Success message indicating current publish status
  */
 export const onFlowPublish = async (workflowId: string, state: boolean) => {
+  const { userId } = await auth();
+  if (!userId) return "Unauthorized";
+
   if (state) {
     const workflow = await db.workflows.findUnique({
-      where: { id: workflowId },
+      where: { id: workflowId, userId },
       select: { flowPath: true },
     });
 
@@ -82,7 +85,7 @@ export const onFlowPublish = async (workflowId: string, state: boolean) => {
   }
 
   const published = await db.workflows.update({
-    where: { id: workflowId },
+    where: { id: workflowId, userId },
     data: { publish: state },
   });
 
@@ -299,14 +302,12 @@ export const onCreateWorkflow = async (name: string, description: string) => {
  * @returns Object containing nodes and edges JSON data, or undefined if not found
  */
 export const onGetNodesEdges = async (flowId: string) => {
+  const { userId } = await auth();
+  if (!userId) return null;
+
   const nodesEdges = await db.workflows.findUnique({
-    where: {
-      id: flowId,
-    },
-    select: {
-      nodes: true,
-      edges: true,
-    },
+    where: { id: flowId, userId },
+    select: { nodes: true, edges: true },
   });
   if (nodesEdges?.nodes && nodesEdges?.edges) return nodesEdges;
 };
@@ -329,6 +330,42 @@ export const getWorkflowExecutionLogs = async (workflowId: string) => {
     where: { workflowId },
     orderBy: { createdAt: "desc" },
     take: 50,
+  });
+};
+
+/**
+ * Returns the last 20 WorkflowRun records with their NodeRun children for the editor history panel.
+ */
+export const getWorkflowRuns = async (workflowId: string) => {
+  const { userId } = await auth();
+  if (!userId) return null;
+
+  const workflow = await db.workflows.findUnique({
+    where: { id: workflowId, userId },
+    select: { id: true },
+  });
+  if (!workflow) return null;
+
+  return db.workflowRun.findMany({
+    where: { workflowId },
+    orderBy: { startedAt: "desc" },
+    take: 20,
+    include: {
+      nodeRuns: {
+        orderBy: { startedAt: "asc" },
+        select: {
+          id: true,
+          nodeId: true,
+          nodeType: true,
+          status: true,
+          inputData: true,
+          outputData: true,
+          error: true,
+          startedAt: true,
+          completedAt: true,
+        },
+      },
+    },
   });
 };
 

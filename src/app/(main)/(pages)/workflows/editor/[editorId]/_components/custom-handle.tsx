@@ -1,13 +1,8 @@
 import { useEditor } from "@/providers/editor-provider";
 import React, { CSSProperties } from "react";
-import { Handle, HandleProps, useStore } from "@xyflow/react";
+import { Handle, HandleProps } from "@xyflow/react";
 
 type Props = HandleProps & { style?: CSSProperties };
-
-const selector = (s: any) => ({
-  nodeInternals: s.nodeInternals,
-  edges: s.edges,
-});
 
 const CustomHandle = (props: Props) => {
   const { state } = useEditor();
@@ -22,7 +17,6 @@ const CustomHandle = (props: Props) => {
         const sourceNode = state.editor.elements.find(
           (node) => node.id === e.source
         );
-        //target
         const targetFromHandleInState = state.editor.edges.filter(
           (edge) => edge.target === e.target
         ).length;
@@ -32,7 +26,7 @@ const CustomHandle = (props: Props) => {
         if (sourcesFromHandleInState < 1) return true;
         return false;
       }}
-      className="!-bottom-2 !h-4 !w-4 dark:bg-neutral-800"
+      className="!h-3 !w-3 !border-2 !border-primary !bg-background hover:!bg-primary transition-colors"
     />
   );
 };

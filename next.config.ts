@@ -78,30 +78,12 @@ const nextConfig: NextConfig = {
    * - Enhanced server-side functionality for workflow automation
    */
   experimental: {
-    /**
-     * Server Actions configuration for handling large data payloads.
-     *
-     * Increases the default body size limit to support:
-     * - Large file uploads through UploadCare integration
-     * - Zoom meeting recordings and transcript processing
-     * - Workflow data with complex node configurations
-     * - AI-generated content with extensive metadata
-     *
-     * Default limit: 1MB
-     * Configured limit: 5MB (5x increase for workflow automation needs)
-     */
     serverActions: {
       bodySizeLimit: "5mb",
     },
   },
-  webpack: (config) => {
-    config.resolve = {
-      ...config.resolve,
-      symlinks: false,
-    };
-    config.cache = false;
-    return config;
-  },
+  /** Empty turbopack config to silence "webpack config without turbopack config" warning in Next.js 16 */
+  turbopack: {},
 };
 
 export default nextConfig;

@@ -1,20 +1,22 @@
 import { inngest } from "./client";
 import { db } from "@/lib/db";
-import { postContentToWebHook } from "@/app/(main)/(pages)/connections/_actions/discord-connection";
-import { onCreateNewPageInDatabase } from "@/app/(main)/(pages)/connections/_actions/notion-connection";
-import { postMessageToSlack } from "@/app/(main)/(pages)/connections/_actions/slack-connection";
-import { sendEmailToMultipleRecipientsViaGmail } from "@/app/(main)/(pages)/connections/_actions/email-connection";
-import { safeDecrypt } from "@/lib/encryption";
+import { executorRegistry, SPECIAL_NODES } from "./executor-registry";
+import { interpolateObject } from "./expressions";
+import type { EditorNodeType } from "@/lib/types";
+import type { ExecutionContext, Item } from "./types";
+
+/** Serialize Item[] to a plain JSON-compatible value for Prisma */
+const toJson = (items: Item[]) => JSON.parse(JSON.stringify(items));
 
 /**
- * Inngest durable workflow execution function.
+ * Zyflow workflow execution engine — built on Inngest for durability.
  *
- * Key advantages over the old /api/flow cron approach:
- * - Each step is isolated: a failure in Slack doesn't abort Discord
- * - Built-in per-step retries with exponential backoff (no manual withRetry)
- * - `step.sleep()` replaces the fragile cron-job.org Wait node
- * - Full execution timeline visible in the Inngest dashboard
- * - Survives serverless cold starts and mid-execution restarts
+ * Architecture:
+ *  - flowPath stores ordered node IDs (not type strings)
+ *  - Each node receives Item[] from the previous node
+ *  - Node config comes from node.data.metadata on the canvas
+ *  - Expressions ({{ nodeId.field }}) are resolved before each executor runs
+ *  - WorkflowRun + NodeRun records provide full execution history
  */
 export const executeWorkflow = inngest.createFunction(
   {
@@ -25,9 +27,9 @@ export const executeWorkflow = inngest.createFunction(
   },
   { event: "workflow/trigger" },
   async ({ event, step }) => {
-    const { workflowId, source } = event.data;
+    const { workflowId, source, payload = {} } = event.data;
 
-    // Step 1: Load and validate workflow
+    // ── Step 1: Load and validate workflow ──────────────────────────────────
     const workflow = await step.run("load-workflow", async () => {
       const wf = await db.workflows.findUnique({ where: { id: workflowId } });
       if (!wf) throw new Error(`Workflow ${workflowId} not found`);
@@ -35,7 +37,7 @@ export const executeWorkflow = inngest.createFunction(
       return wf;
     });
 
-    // Step 2: Check credits
+    // ── Step 2: Check credits ───────────────────────────────────────────────
     const user = await step.run("check-credits", async () => {
       const u = await db.user.findUnique({
         where: { clerkId: workflow.userId },
@@ -48,19 +50,54 @@ export const executeWorkflow = inngest.createFunction(
       return u;
     });
 
-    // Step 3: Parse flow path
-    let flowPath: string[] = [];
-    try {
-      flowPath = workflow.flowPath ? JSON.parse(workflow.flowPath) : [];
-    } catch {
-      flowPath = [];
-    }
+    // ── Step 3: Parse nodes and flow path ───────────────────────────────────
+    const { nodeMap, flowPath } = await step.run("parse-workflow", async () => {
+      let nodes: EditorNodeType[] = [];
+      let path: string[] = [];
 
-    if (!flowPath.length) {
-      return { message: "No execution path configured" };
-    }
+      try { nodes = workflow.nodes ? JSON.parse(workflow.nodes) : []; } catch {}
+      try { path = workflow.flowPath ? JSON.parse(workflow.flowPath) : []; } catch {}
 
-    // Log the trigger
+      if (!path.length) throw new Error("No execution path configured");
+
+      const map: Record<string, EditorNodeType> = {};
+      for (const n of nodes) map[n.id] = n;
+
+      return { nodeMap: map, flowPath: path };
+    });
+
+    // ── Step 4: Create WorkflowRun record ───────────────────────────────────
+    const run = await step.run("create-run", async () => {
+      return db.workflowRun.create({
+        data: {
+          workflowId,
+          status: "running",
+          trigger: { source, payload },
+        },
+      });
+    });
+
+    const ctx: ExecutionContext = {
+      workflowId,
+      runId: run.id,
+      userId: workflow.userId,
+      triggerPayload: payload as Record<string, unknown>,
+      nodeOutputs: new Map(),
+      workflow: {
+        discordTemplate: workflow.discordTemplate,
+        slackTemplate: workflow.slackTemplate,
+        slackAccessToken: workflow.slackAccessToken,
+        slackChannels: workflow.slackChannels,
+        notionTemplate: workflow.notionTemplate,
+        notionAccessToken: workflow.notionAccessToken,
+        notionDbId: workflow.notionDbId,
+        emailTemplate: workflow.emailTemplate,
+        emailRecipients: workflow.emailRecipients,
+        emailSubject: workflow.emailSubject,
+      },
+    };
+
+    // ── Step 5: Log trigger ─────────────────────────────────────────────────
     await step.run("log-trigger", async () => {
       await db.executionLog.create({
         data: {
@@ -72,113 +109,123 @@ export const executeWorkflow = inngest.createFunction(
       });
     });
 
-    // Step 4: Execute each node
-    for (const node of flowPath) {
-      if (node === "Discord") {
-        await step.run("step-discord", async () => {
-          const hook = await db.discordWebhook.findFirst({
-            where: { userId: workflow.userId },
-            select: { url: true },
-          });
-          if (!hook || !workflow.discordTemplate) {
-            await db.executionLog.create({
-              data: { workflowId, step: "Discord", status: "skipped", message: "No webhook or template" },
-            });
-            return;
-          }
-          const result = await postContentToWebHook(workflow.discordTemplate, hook.url);
-          await db.executionLog.create({
+    // ── Step 6: Execute nodes ───────────────────────────────────────────────
+    let currentItems: Item[] = [{ json: payload as Record<string, unknown> }];
+
+    for (const nodeId of flowPath) {
+      let node = nodeMap[nodeId];
+
+      // Legacy fallback: flowPath may contain type strings (e.g. "Discord") from
+      // workflows saved before the node-ID format was introduced. Find the first
+      // canvas node whose type matches.
+      if (!node) {
+        const found = Object.values(nodeMap).find(
+          (n) => (n.type ?? n.data?.type) === nodeId
+        );
+        if (!found) continue;
+        node = found;
+      }
+
+      const nodeType = node.type ?? node.data?.type;
+
+      // Special node: Wait — must use step.sleep at the top level
+      if (nodeType === "Wait") {
+        const duration = (node.data?.metadata?.duration as string) || "1h";
+        await step.sleep(`wait-${nodeId}`, duration);
+        await step.run(`log-wait-${nodeId}`, async () => {
+          await db.nodeRun.create({
             data: {
-              workflowId,
-              step: "Discord",
-              status: result.message === "success" ? "success" : "failed",
-              message: result.message,
+              runId: run.id,
+              nodeId,
+              nodeType: "Wait",
+              status: "completed",
+              inputData: toJson(currentItems),
+              outputData: toJson(currentItems),
+              startedAt: new Date(),
+              completedAt: new Date(),
             },
           });
+          await db.executionLog.create({
+            data: { workflowId, step: "Wait", status: "success", message: `Slept ${duration}` },
+          });
         });
+        continue;
       }
 
-      if (node === "Slack") {
-        await step.run("step-slack", async () => {
-          if (!workflow.slackAccessToken || !workflow.slackChannels?.length || !workflow.slackTemplate) {
-            await db.executionLog.create({
-              data: { workflowId, step: "Slack", status: "skipped", message: "Incomplete configuration" },
-            });
-            return;
-          }
-          const channels = workflow.slackChannels.map((ch) => ({ label: "", value: ch }));
-          const result = await postMessageToSlack(
-            safeDecrypt(workflow.slackAccessToken),
-            channels,
-            workflow.slackTemplate
-          );
-          await db.executionLog.create({
+      // Skip non-executable nodes (triggers, etc.)
+      if (SPECIAL_NODES.has(nodeType) && nodeType !== "Condition") {
+        continue;
+      }
+
+      const executor = executorRegistry[nodeType];
+      if (!executor) {
+        continue;
+      }
+
+      // Resolve expressions in metadata before executing
+      const rawMetadata = (node.data?.metadata ?? {}) as Record<string, unknown>;
+      const resolvedMetadata = interpolateObject(rawMetadata, ctx.nodeOutputs, ctx.triggerPayload);
+
+      const nodeConfig = { nodeId, nodeType, metadata: resolvedMetadata };
+
+      // Execute inside an Inngest step for durability + per-step retries
+      currentItems = await step.run(`node-${nodeId}`, async () => {
+        const nodeRun = await db.nodeRun.create({
+          data: {
+            runId: run.id,
+            nodeId,
+            nodeType,
+            status: "running",
+            inputData: toJson(currentItems),
+            startedAt: new Date(),
+          },
+        });
+
+        try {
+          const output = await executor.execute(currentItems, nodeConfig, ctx);
+
+          await db.nodeRun.update({
+            where: { id: nodeRun.id },
             data: {
-              workflowId,
-              step: "Slack",
-              status: result.message === "Success" ? "success" : "failed",
-              message: result.message,
+              status: "completed",
+              outputData: toJson(output),
+              completedAt: new Date(),
             },
           });
-        });
-      }
 
-      if (node === "Notion") {
-        await step.run("step-notion", async () => {
-          if (!workflow.notionTemplate || !workflow.notionDbId || !workflow.notionAccessToken) {
-            await db.executionLog.create({
-              data: { workflowId, step: "Notion", status: "skipped", message: "Incomplete configuration" },
-            });
-            return;
-          }
-          let fileName = "New Entry";
-          try {
-            const parsed = JSON.parse(workflow.notionTemplate);
-            fileName = typeof parsed === "string" ? parsed : parsed.name ?? "New Entry";
-          } catch {
-            fileName = workflow.notionTemplate;
-          }
-          await onCreateNewPageInDatabase(
-            workflow.notionDbId,
-            safeDecrypt(workflow.notionAccessToken),
-            fileName
-          );
           await db.executionLog.create({
-            data: { workflowId, step: "Notion", status: "success" },
+            data: { workflowId, step: nodeType, status: "success" },
           });
-        });
-      }
 
-      if (node === "Email") {
-        await step.run("step-email", async () => {
-          if (!workflow.emailRecipients?.length) {
-            await db.executionLog.create({
-              data: { workflowId, step: "Email", status: "skipped", message: "No recipients" },
-            });
-            return;
-          }
-          await sendEmailToMultipleRecipientsViaGmail(
-            workflow.emailRecipients,
-            workflow.emailSubject ?? "Workflow Notification",
-            workflow.emailTemplate ?? "A workflow event occurred.",
-            workflow.userId
-          );
+          return output;
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          await db.nodeRun.update({
+            where: { id: nodeRun.id },
+            data: { status: "failed", error: message, completedAt: new Date() },
+          });
           await db.executionLog.create({
-            data: { workflowId, step: "Email", status: "success" },
+            data: { workflowId, step: nodeType, status: "failed", message },
           });
-        });
+          throw err;
+        }
+      });
+
+      // For Condition nodes: filter to only true-branch items and strip _branch tag
+      if (nodeType === "Condition") {
+        currentItems = currentItems
+          .filter((item) => (item.json as Record<string, unknown>)._branch === "true")
+          .map((item) => {
+            const { _branch, ...rest } = item.json as Record<string, unknown>;
+            return { json: rest };
+          });
       }
 
-      if (node === "Wait") {
-        // Durable sleep — survives serverless restarts
-        await step.sleep("wait-step", "1 hour");
-        await db.executionLog.create({
-          data: { workflowId, step: "Wait", status: "success", message: "Slept 1 hour" },
-        });
-      }
+      // Store output for expression resolution in subsequent nodes
+      ctx.nodeOutputs.set(nodeId, currentItems);
     }
 
-    // Step 5: Deduct credit
+    // ── Step 7: Deduct credit ───────────────────────────────────────────────
     await step.run("deduct-credit", async () => {
       if (user.credits !== "Unlimited") {
         await db.user.update({
@@ -186,8 +233,12 @@ export const executeWorkflow = inngest.createFunction(
           data: { credits: String(Math.max(0, parseInt(user.credits ?? "0") - 1)) },
         });
       }
+      await db.workflowRun.update({
+        where: { id: run.id },
+        data: { status: "completed", completedAt: new Date() },
+      });
     });
 
-    return { message: "Workflow completed", workflowId, steps: flowPath.length };
+    return { message: "Workflow completed", workflowId, runId: run.id };
   }
 );

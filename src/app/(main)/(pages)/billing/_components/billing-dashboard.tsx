@@ -2,7 +2,7 @@
 
 import { useBilling } from "@/providers/billing-provider";
 import React from "react";
-import CreditTracker from "./creadits-tracker";
+import CreditTracker from "./credits-tracker";
 
 const BillingDashboard = () => {
   const { credits, tier } = useBilling();

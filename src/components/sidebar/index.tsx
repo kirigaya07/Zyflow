@@ -1,104 +1,71 @@
 "use client";
+
 import { usePathname } from "next/navigation";
-import React from "react";
+import { LoadingLink } from "@/components/global/loading-link";
+import { menuOptions } from "@/lib/constants";
+import { ModeToggle } from "@/components/global/mode-toggle";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { LoadingLink } from "@/components/global/loading-link";
-import { menuOptions } from "@/lib/constants";
-import clsx from "clsx";
-import { Separator } from "@/components/ui/separator";
-import { Database, GitBranch, LucideMousePointerClick } from "lucide-react";
-import { ModeToggle } from "@/components/global/mode-toggle";
+import { Zap } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const MenuOptions = () => {
-  const pathName = usePathname();
+const Sidebar = () => {
+  const pathname = usePathname();
 
   return (
-    <nav
-      className="dark:bg-black h-screen overflow-y-auto justify-between flex items-center flex-col gap-10 py-6 px-2"
-      role="navigation"
-      aria-label="Sidebar navigation"
-    >
-      <div className="flex items-center justify-center flex-col gap-8">
-        <LoadingLink
-          className="flex font-bold flex-row text-xl hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
-          href="/"
-        >
-          Zyflow
+    <aside className="flex flex-col w-14 h-screen border-r border-border bg-background shrink-0 z-20">
+      {/* Logo */}
+      <div className="flex items-center justify-center h-14 border-b border-border shrink-0">
+        <LoadingLink href="/dashboard" aria-label="Zyflow home">
+          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary">
+            <Zap className="w-4 h-4 text-primary-foreground fill-primary-foreground" />
+          </div>
         </LoadingLink>
-        <TooltipProvider>
-          <div className="flex flex-col gap-2">
-            {menuOptions.map((menuItem) => (
-              <Tooltip key={menuItem.name} delayDuration={0}>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex flex-col flex-1 items-center gap-1 py-3 px-2 overflow-y-auto">
+        <TooltipProvider delayDuration={0}>
+          {menuOptions.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Tooltip key={item.name}>
                 <TooltipTrigger asChild>
                   <LoadingLink
-                    href={menuItem.href}
-                    className={clsx(
-                      "group h-8 w-8 flex items-center justify-center scale-110 rounded-lg p-1 cursor-pointer transition-all duration-200",
-                      {
-                        "dark:bg-purple-900 bg-purple-100":
-                          pathName === menuItem.href,
-                        "hover:bg-gray-100 dark:hover:bg-gray-800":
-                          pathName !== menuItem.href,
-                      }
+                    href={item.href}
+                    aria-label={item.name}
+                    className={cn(
+                      "relative flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-150",
+                      isActive
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                     )}
                   >
-                    <menuItem.Component selected={pathName === menuItem.href} />
+                    {isActive && (
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r-full" />
+                    )}
+                    <item.Component selected={isActive} />
                   </LoadingLink>
                 </TooltipTrigger>
-                <TooltipContent
-                  side="right"
-                  className="bg-black/10 backdrop-blur-xl"
-                >
-                  <p>{menuItem.name}</p>
+                <TooltipContent side="right" sideOffset={8}>
+                  <p className="text-xs font-medium">{item.name}</p>
                 </TooltipContent>
               </Tooltip>
-            ))}
-          </div>
+            );
+          })}
         </TooltipProvider>
-        <Separator />
-        <div className="flex items-center flex-col gap-6 bg-gray-100/50 dark:bg-gray-800/30 py-4 px-2 rounded-full min-h-[200px] max-h-[240px] overflow-y-auto border border-gray-200 dark:border-gray-700">
-          {[
-            { Icon: LucideMousePointerClick, isActive: true },
-            { Icon: GitBranch, isActive: false },
-            { Icon: Database, isActive: false },
-            { Icon: GitBranch, isActive: false },
-          ].map((item, index) => (
-            <div key={index} className="relative group">
-              <div
-                className={clsx(
-                  "relative p-2 rounded-full border transition-all duration-200",
-                  {
-                    "bg-purple-100 dark:bg-purple-900 border-purple-300 dark:border-purple-700":
-                      item.isActive,
-                    "bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:hover:bg-gray-600":
-                      !item.isActive,
-                  }
-                )}
-              >
-                <item.Icon
-                  className={clsx("size-[18px]", {
-                    "text-purple-600 dark:text-purple-300": item.isActive,
-                    "text-gray-500 dark:text-gray-400": !item.isActive,
-                  })}
-                />
-              </div>
-              {index < 3 && (
-                <div className="border-l-2 border-gray-300 dark:border-gray-600 h-6 absolute left-1/2 transform -translate-x-1/2 -bottom-[24px]" />
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="flex items-center justify-center flex-col gap-8">
+      </nav>
+
+      {/* Bottom */}
+      <div className="flex items-center justify-center h-12 border-t border-border shrink-0">
         <ModeToggle />
       </div>
-    </nav>
+    </aside>
   );
 };
 
-export default MenuOptions;
+export default Sidebar;

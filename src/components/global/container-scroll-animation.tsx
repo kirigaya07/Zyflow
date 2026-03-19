@@ -1,99 +1,35 @@
-/**
- * Container Scroll Animation Component
- *
- * This component creates engaging scroll-triggered animations for showcasing content:
- * - Scroll-based transformations using Framer Motion
- * - Responsive design with mobile-specific adjustments
- * - 3D perspective effects with rotation and scaling
- * - Smooth transitions tied to scroll progress
- *
- * Features:
- * - Scroll progress tracking for animation triggers
- * - Mobile-responsive scaling and transform adjustments
- * - 3D perspective container with depth effects
- * - Coordinated header and card animations
- * - Performance-optimized with useTransform hooks
- * - Smooth easing and natural motion curves
- */
-
 "use client";
 import React, { useRef } from "react";
 import { useScroll, useTransform, motion } from "framer-motion";
 import Image from "next/image";
 
-/**
- * Main container scroll animation component with responsive 3D effects.
- *
- * This component provides:
- * - Scroll-triggered animations for immersive content presentation
- * - Responsive behavior with mobile-specific transform values
- * - 3D perspective container for depth and dimension effects
- * - Coordinated animations between header text and card content
- *
- * Animation behavior:
- * - Tracks scroll progress within the container viewport
- * - Applies rotation, scaling, and translation transforms
- * - Adjusts animation parameters based on device type
- * - Creates smooth transitions tied to user scroll behavior
- *
- * Responsive features:
- * - Dynamic mobile detection with resize event handling
- * - Mobile-optimized scaling factors for better UX
- * - Viewport-aware animation adjustments
- *
- * @param titleComponent - Header content (string or React component) to animate
- * @returns JSX.Element - Scroll-animated container with 3D effects
- */
 export const ContainerScroll = ({
   titleComponent,
 }: {
   titleComponent: string | React.ReactNode;
 }) => {
-  const containerRef = useRef<any>(null);
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-  });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: containerRef });
   const [isMobile, setIsMobile] = React.useState(false);
 
-  /**
-   * Effect to handle responsive mobile detection and window resize events.
-   * Updates mobile state for responsive animation adjustments.
-   */
   React.useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
+    const checkMobile = () => setIsMobile(window.innerWidth <= 768);
     checkMobile();
     window.addEventListener("resize", checkMobile);
-    return () => {
-      window.removeEventListener("resize", checkMobile);
-    };
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  /**
-   * Returns responsive scaling dimensions based on device type.
-   * Mobile devices use smaller scale factors for better visual proportions.
-   */
-  const scaleDimensions = () => {
-    return isMobile ? [0.7, 0.9] : [1.05, 1];
-  };
-
-  // Transform values based on scroll progress
-  const rotate = useTransform(scrollYProgress, [0, 1], [20, 0]);
-  const scale = useTransform(scrollYProgress, [0, 1], scaleDimensions());
-  const translate = useTransform(scrollYProgress, [0, 1], [0, -100]);
+  // Starts tilted & small, flattens & grows as you scroll down — satisfying "landing" feel
+  const rotate   = useTransform(scrollYProgress, [0, 1], [18, 0]);
+  const scale    = useTransform(scrollYProgress, [0, 1], isMobile ? [0.75, 1] : [0.82, 1]);
+  const translate = useTransform(scrollYProgress, [0, 1], [0, -80]);
 
   return (
     <div
-      className="h-[80rem] flex items-center justify-center relative p-20"
+      className="h-[75rem] flex items-center justify-center relative p-10 md:p-20"
       ref={containerRef}
     >
-      <div
-        className="py-40 w-full relative"
-        style={{
-          perspective: "1000px",
-        }}
-      >
+      <div className="py-40 w-full relative" style={{ perspective: "1200px" }}>
         <Header translate={translate} titleComponent={titleComponent} />
         <Card rotate={rotate} translate={translate} scale={scale} />
       </div>
@@ -101,46 +37,41 @@ export const ContainerScroll = ({
   );
 };
 
-export const Header = ({ translate, titleComponent }: any) => {
-  return (
-    <motion.div
-      style={{
-        translateY: translate,
-      }}
-      className="div max-w-5xl mx-auto text-center"
-    >
-      {titleComponent}
-    </motion.div>
-  );
-};
+export const Header = ({ translate, titleComponent }: { translate: any; titleComponent: React.ReactNode }) => (
+  <motion.div
+    style={{ translateY: translate }}
+    className="max-w-5xl mx-auto text-center"
+  >
+    {titleComponent}
+  </motion.div>
+);
 
-export const Card = ({
-  rotate,
-  scale,
-  translate,
-}: {
-  rotate: any;
-  scale: any;
-  translate: any;
-}) => {
-  return (
-    <motion.div
-      style={{
-        rotateX: rotate, // rotate in X-axis
-        scale,
-        boxShadow:
-          "0 0 #0000004d, 0 9px 20px #0000004a, 0 37px 37px #00000042, 0 84px 50px #00000026, 0 149px 60px #0000000a, 0 233px 65px #00000003",
-      }}
-      className="max-w-5xl -mt-12 mx-auto h-[30rem] md:h-[40rem] w-full  p-6 bg-[#222222] rounded-[30px] shadow-2xl"
-    >
-      <div className="bg-gray-100 h-full w-full rounded-2xl  gap-4 overflow-hidden p-4 transition-all ">
-        <Image
-          src="/temp-banner.png"
-          fill
-          alt="bannerImage"
-          className="object-cover border-8 rounded-2xl"
-        />
-      </div>
-    </motion.div>
-  );
-};
+export const Card = ({ rotate, scale }: { rotate: any; scale: any; translate: any }) => (
+  <motion.div
+    style={{
+      rotateX: rotate,
+      scale,
+      // Crisp layered shadow — no color leak
+      boxShadow: "0 0 0 1px rgba(255,255,255,0.06), 0 24px 48px rgba(0,0,0,0.5), 0 8px 16px rgba(0,0,0,0.3)",
+    }}
+    className="max-w-5xl -mt-10 mx-auto h-[28rem] md:h-[40rem] w-full rounded-2xl bg-neutral-900 border border-white/[0.07] overflow-hidden"
+  >
+    {/* Thin chrome bar — mimics browser/app window */}
+    <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-white/[0.06] bg-neutral-950/60">
+      <span className="h-2.5 w-2.5 rounded-full bg-red-500/70" />
+      <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/70" />
+      <span className="h-2.5 w-2.5 rounded-full bg-green-500/70" />
+      <div className="flex-1 mx-4 h-5 rounded bg-white/[0.04] border border-white/[0.06]" />
+    </div>
+    {/* Screenshot */}
+    <div className="relative h-full w-full">
+      <Image
+        src="/temp-banner.png"
+        fill
+        alt="Zyflow dashboard"
+        className="object-cover object-top"
+        priority
+      />
+    </div>
+  </motion.div>
+);

@@ -10,7 +10,6 @@ type Props = object;
 
 const WorkflowButton = (props: Props) => {
   const { setOpen, setClose } = useModal();
-  // const { credits } = useBilling();
   const handleClick = () => {
     setOpen(
       <CustomModal
@@ -23,8 +22,9 @@ const WorkflowButton = (props: Props) => {
   };
 
   return (
-    <Button size={"icon"} onClick={handleClick}>
-      <Plus />
+    <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={handleClick}>
+      <Plus className="h-3.5 w-3.5" />
+      New Workflow
     </Button>
   );
 };

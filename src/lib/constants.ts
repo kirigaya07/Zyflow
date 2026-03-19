@@ -28,84 +28,21 @@ export const clients = [...new Array(10)].map((client, index) => ({
  * Used to display partner companies and successful integrations.
  */
 export const products = [
-  {
-    title: "Moonbeam",
-    link: "https://gomoonbeam.com",
-    thumbnail: "/p1.png",
-  },
-  {
-    title: "Cursor",
-    link: "https://cursor.so",
-    thumbnail: "/p2.png",
-  },
-  {
-    title: "Rogue",
-    link: "https://userogue.com",
-    thumbnail: "/p3.png",
-  },
-
-  {
-    title: "Editorially",
-    link: "https://editorially.org",
-    thumbnail: "/p4.png",
-  },
-  {
-    title: "Editrix AI",
-    link: "https://editrix.ai",
-    thumbnail: "/p5.png",
-  },
-  {
-    title: "Pixel Perfect",
-    link: "https://app.pixelperfect.quest",
-    thumbnail: "/p6.png",
-  },
-
-  {
-    title: "Algochurn",
-    link: "https://algochurn.com",
-    thumbnail: "/p1.png",
-  },
-  {
-    title: "Aceternity UI",
-    link: "https://ui.aceternity.com",
-    thumbnail: "/p2.png",
-  },
-  {
-    title: "Tailwind Master Kit",
-    link: "https://tailwindmasterkit.com",
-    thumbnail: "/p3.png",
-  },
-  {
-    title: "SmartBridge",
-    link: "https://smartbridgetech.com",
-    thumbnail: "/p4.png",
-  },
-  {
-    title: "Renderwork Studio",
-    link: "https://renderwork.studio",
-    thumbnail: "/p5.png",
-  },
-
-  {
-    title: "Creme Digital",
-    link: "https://cremedigital.com",
-    thumbnail: "/p6.png",
-  },
-  {
-    title: "Golden Bells Academy",
-    link: "https://goldenbellsacademy.com",
-    thumbnail: "/p1.png",
-  },
-  {
-    title: "Invoker Labs",
-    link: "https://invoker.lol",
-    thumbnail: "/p2.png",
-  },
-  {
-    title: "E Free Invoice",
-    link: "https://efreeinvoice.com",
-    thumbnail: "/p3.png",
-  },
+  { title: "Webhook Trigger",       link: "/sign-up", thumbnail: "/p1.png" },
+  { title: "AI Summary Node",       link: "/sign-up", thumbnail: "/p2.png" },
+  { title: "Drive → Slack Flow",    link: "/sign-up", thumbnail: "/p3.png" },
+  { title: "Discord Notifier",      link: "/sign-up", thumbnail: "/p4.png" },
+  { title: "Email Digest",          link: "/sign-up", thumbnail: "/p5.png" },
+  { title: "Notion Sync",           link: "/sign-up", thumbnail: "/p6.png" },
+  { title: "Condition Branch",      link: "/sign-up", thumbnail: "/p1.png" },
+  { title: "HTTP Request Node",     link: "/sign-up", thumbnail: "/p2.png" },
+  { title: "Code Node",             link: "/sign-up", thumbnail: "/p3.png" },
+  { title: "Wait & Schedule",       link: "/sign-up", thumbnail: "/p4.png" },
+  { title: "Set Fields Node",       link: "/sign-up", thumbnail: "/p5.png" },
+  { title: "Multi-step Pipeline",   link: "/sign-up", thumbnail: "/p6.png" },
+  { title: "Zoom → AI Summary",     link: "/sign-up", thumbnail: "/p1.png" },
+  { title: "Slack Broadcaster",     link: "/sign-up", thumbnail: "/p2.png" },
+  { title: "Google Drive Watcher",  link: "/sign-up", thumbnail: "/p3.png" },
 ];
 
 /**
@@ -177,6 +114,22 @@ export const EditorCanvasDefaultCardTypes = {
   },
   Wait: {
     description: "Delay the next action step by using the wait timer.",
+    type: "Action",
+  },
+  "HTTP Request": {
+    description: "Make an HTTP request to any external API or webhook URL.",
+    type: "Action",
+  },
+  "Webhook Trigger": {
+    description: "Start a workflow when a POST request is sent to a unique URL.",
+    type: "Trigger",
+  },
+  Code: {
+    description: "Run custom JavaScript to transform or process data.",
+    type: "Action",
+  },
+  "Set Fields": {
+    description: "Add, overwrite, or replace fields on each item passing through.",
     type: "Action",
   },
 };

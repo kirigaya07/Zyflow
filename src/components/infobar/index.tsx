@@ -1,63 +1,56 @@
 "use client";
-import React, { useEffect } from "react";
-import { ModeToggle } from "../global/mode-toggle";
-import { Book, Headphones, Search } from "lucide-react";
-import Templates from "../icons/cloud_download";
-import { Input } from "@/components/ui/input";
+
+import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
+import { Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+const PAGE_TITLES: Record<string, string> = {
+  "/dashboard":   "Dashboard",
+  "/workflows":   "Workflows",
+  "/connections": "Connections",
+  "/settings":    "Settings",
+  "/billing":     "Billing",
+  "/templates":   "Templates",
+  "/logs":        "Logs",
+};
 
-type Props = {};
+const InfoBar = () => {
+  const pathname = usePathname();
 
-const InfoBar = (props: Props) => {
+  // Editor has its own full-screen toolbar — no top bar needed
+  if (pathname.includes("/workflows/editor/")) return null;
+
+  const title = PAGE_TITLES[pathname] ?? "";
+
   return (
-    <div className="flex flex-row justify-end gap-6 items-center px-4 py-4 w-full dark:bg-black ">
-      <span className="flex items-center gap-2 font-bold">
-        <p className="text-sm font-light text-gray-300">Hello</p>
-      </span>
-      <span className="flex items-center rounded-full bg-muted px-4">
-        <Search />
-        <Input
-          placeholder="Quick Search"
-          className="border-none bg-transparent"
+    <header className="flex items-center justify-between h-14 px-6 border-b border-border bg-background/80 backdrop-blur-md shrink-0">
+      {/* Page title */}
+      <h1 className="text-sm font-semibold text-foreground tracking-tight">
+        {title}
+      </h1>
+
+      {/* Right actions */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 h-8 px-3 rounded-lg bg-secondary border border-border text-muted-foreground text-xs">
+          <Search className="w-3.5 h-3.5 shrink-0" />
+          <Input
+            placeholder="Search…"
+            className="border-none bg-transparent h-auto p-0 text-xs focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground w-28"
+          />
+        </div>
+
+        <UserButton
+          afterSignOutUrl="/"
+          appearance={{
+            elements: {
+              avatarBox: "w-7 h-7",
+              userButtonPopover: "z-[200]",
+            },
+          }}
         />
-      </span>
-      <TooltipProvider>
-        <Tooltip delayDuration={0}>
-          <TooltipTrigger>
-            <Headphones />
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Contact Support</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-      <TooltipProvider>
-        <Tooltip delayDuration={0}>
-          <TooltipTrigger>
-            <Book />
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Guide</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-      <UserButton
-        afterSignOutUrl="/"
-        appearance={{
-          elements: {
-            avatarBox: "w-8 h-8",
-            userButtonPopover: "z-[200]",
-          },
-        }}
-      />
-    </div>
+      </div>
+    </header>
   );
 };
 

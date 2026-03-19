@@ -149,6 +149,38 @@ model ExecutionLog {
   @@index([createdAt])
 }
 
+/// Tracks a single execution run of a workflow — created when a trigger fires.
+model WorkflowRun {
+  id          String    @id @default(cuid())
+  workflowId  String
+  status      String    @default("running") // "running" | "completed" | "failed" | "paused"
+  trigger     Json?     // trigger source + initial payload
+  error       String?
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  nodeRuns    NodeRun[]
+
+  @@index([workflowId])
+  @@index([startedAt])
+}
+
+/// Tracks per-node execution within a WorkflowRun — input/output data flows through here.
+model NodeRun {
+  id          String       @id @default(cuid())
+  runId       String
+  run         WorkflowRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
+  nodeId      String       // matches node id on the canvas
+  nodeType    String       // Discord | Slack | HTTP Request | etc.
+  status      String       @default("pending") // "pending" | "running" | "completed" | "failed" | "skipped"
+  inputData   Json?        // Item[] received from previous node
+  outputData  Json?        // Item[] produced by this node
+  error       String?
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  @@index([runId])
+}
+
 /// Stores processed webhook event IDs to prevent duplicate workflow executions.
 /// Records older than 24h can be safely deleted.
 model WebhookEvent {

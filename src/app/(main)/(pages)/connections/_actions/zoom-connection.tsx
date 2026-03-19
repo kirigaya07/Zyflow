@@ -206,13 +206,6 @@ export const getZoomTranscript = async (meetingId: string, userId: string) => {
  */
 export const generateMeetingSummary = async (transcript: string) => {
   try {
-    console.log(
-      `🤖 OpenAI API Key status: ${
-        process.env.OPENAI_API_KEY ? "✅ Set" : "❌ Not set"
-      }`
-    );
-    console.log(`📄 Transcript length: ${transcript.length} characters`);
-
     if (!process.env.OPENAI_API_KEY) {
       return { message: "failed", error: "OpenAI API key not configured" };
     }
@@ -221,22 +214,12 @@ export const generateMeetingSummary = async (transcript: string) => {
       return { message: "failed", error: "Transcript too short or empty" };
     }
 
-    // Keep original transcript size for better summaries
-    const maxLength = 8000; // Original size for comprehensive summaries
+    const maxLength = 8000;
     const truncatedTranscript =
       transcript.length > maxLength
         ? transcript.substring(0, maxLength) +
           "\n\n[Transcript truncated to optimize token usage]"
         : transcript;
-
-    console.log(
-      `📄 Using transcript length: ${truncatedTranscript.length} characters (optimized for $5 credit)`
-    );
-
-    // Estimate cost (rough calculation)
-    const estimatedTokens = Math.ceil(truncatedTranscript.length / 4) + 1000; // Rough estimate
-    const estimatedCost = (estimatedTokens * 0.0005) / 1000; // GPT-3.5-turbo pricing
-    console.log(`💰 Estimated cost: ~$${estimatedCost.toFixed(4)}`);
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -262,11 +245,8 @@ export const generateMeetingSummary = async (transcript: string) => {
       }),
     });
 
-    console.log(`📡 OpenAI API response status: ${response.status}`);
-
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`❌ OpenAI API error: ${response.status} - ${errorText}`);
 
       // Handle quota exceeded error
       if (response.status === 429) {
@@ -284,14 +264,11 @@ export const generateMeetingSummary = async (transcript: string) => {
     }
 
     const result = await response.json();
-    console.log(`📊 OpenAI API result:`, result);
 
     if (result.choices && result.choices[0] && result.choices[0].message) {
       const summary = result.choices[0].message.content;
 
-      // Check if content was filtered
       if (result.choices[0].finish_reason === "content_filter") {
-        console.log(`⚠️ Content filtered by OpenAI, using fallback summary`);
         return {
           message: "success",
           summary: `Meeting Summary (Content Filtered)\n\nDate: ${new Date().toISOString()}\nFile: Audio transcript processed\n\n[Summary was filtered by OpenAI content policy. Please review the transcript manually for sensitive content.]`,
@@ -303,7 +280,6 @@ export const generateMeetingSummary = async (transcript: string) => {
         summary: summary,
       };
     } else {
-      console.error(`❌ No valid response from OpenAI:`, result);
       return { message: "failed", error: "No summary generated from OpenAI" };
     }
   } catch (error) {
