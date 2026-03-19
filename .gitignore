@@ -44,3 +44,5 @@ certificates
 /src/generated/prisma
 
 /src/generated/prisma
+.claude
+.vscode
