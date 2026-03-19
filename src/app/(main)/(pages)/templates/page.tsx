@@ -19,7 +19,16 @@ import { Button } from "@/components/ui/button";
 
 /* ─── Template data ──────────────────────────────────────── */
 
-const TEMPLATES = [
+const TEMPLATES: {
+  id: string;
+  title: string;
+  description: string;
+  icon: React.ElementType;
+  iconStyle: string;
+  tags: string[];
+  filter: string[];
+  complexity: string;
+}[] = [
   {
     id: "zoom-meeting-summary",
     title: "Zoom → Transcript → AI Summary",
