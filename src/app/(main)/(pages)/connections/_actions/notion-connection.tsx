@@ -64,7 +64,7 @@ export const onNotionConnect = async (
           accessToken: encrypt(access_token),
           workspaceId: workspace_id,
           workspaceName: workspace_name,
-          databaseId: database_id,
+          databaseId: database_id || "",
           connections: {
             create: {
               userId: id,
