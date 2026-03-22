@@ -1,5 +1,6 @@
 import { onCreateNewPageInDatabase } from "@/app/(main)/(pages)/connections/_actions/notion-connection";
 import { safeDecrypt } from "@/lib/encryption";
+import { interpolate } from "../expressions";
 import type { ExecutionContext, Item, NodeConfig, NodeExecutor } from "../types";
 
 export class NotionExecutor implements NodeExecutor {
@@ -10,27 +11,20 @@ export class NotionExecutor implements NodeExecutor {
   ): Promise<Item[]> {
     const { metadata } = config;
 
-    // Prefer metadata config, fall back to workflow-level columns
     const rawToken = (metadata.accessToken as string) || ctx.workflow.notionAccessToken;
-    const databaseId = (metadata.databaseId as string) || ctx.workflow.notionDbId;
 
-    let pageTitle = (metadata.pageTitle as string) || null;
-    if (!pageTitle && ctx.workflow.notionTemplate) {
-      try {
-        const parsed = JSON.parse(ctx.workflow.notionTemplate);
-        pageTitle = typeof parsed === "string" ? parsed : parsed.name ?? "New Entry";
-      } catch {
-        pageTitle = ctx.workflow.notionTemplate;
-      }
-    }
-    pageTitle = pageTitle || "New Entry";
+    const content = interpolate(
+      (metadata.content as string) || ctx.workflow.notionTemplate || "New Entry",
+      ctx.nodeOutputs,
+      ctx.triggerPayload
+    );
 
-    if (!rawToken || !databaseId) {
-      return [{ json: { skipped: true, reason: "Incomplete Notion configuration" } }];
+    if (!rawToken) {
+      return [{ json: { skipped: true, reason: "No Notion access token configured" } }];
     }
 
-    await onCreateNewPageInDatabase(databaseId, safeDecrypt(rawToken), pageTitle);
+    await onCreateNewPageInDatabase(safeDecrypt(rawToken), content);
 
-    return [{ json: { success: true, databaseId, pageTitle } }];
+    return [{ json: { success: true, content } }];
   }
 }

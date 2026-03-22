@@ -60,7 +60,7 @@ export const onNotionConnect = async (
       await db.notion.create({
         data: {
           userId: id,
-          workspaceIcon: workspace_icon,
+          workspaceIcon: workspace_icon || "",
           accessToken: encrypt(access_token),
           workspaceId: workspace_id,
           workspaceName: workspace_name,
@@ -129,7 +129,6 @@ export const getNotionDatabase = async (
  * @returns Created page data from Notion API
  */
 export const onCreateNewPageInDatabase = async (
-  databaseId: string,
   accessToken: string,
   content: string
 ) => {
@@ -137,14 +136,13 @@ export const onCreateNewPageInDatabase = async (
     auth: accessToken,
   });
 
-  console.log(databaseId);
   const response = await notion.pages.create({
     parent: {
-      type: "database_id",
-      database_id: databaseId,
+      type: "workspace",
+      workspace: true,
     },
     properties: {
-      Name: {
+      title: {
         title: [
           {
             text: {

@@ -556,7 +556,6 @@ function NotionConfig({
             onClick={() =>
               update({
                 accessToken: nodeConnection.notionNode.accessToken,
-                databaseId: nodeConnection.notionNode.databaseId,
               })
             }
           >
@@ -572,16 +571,6 @@ function NotionConfig({
           placeholder="secret_…"
           value={(meta.accessToken as string) || ""}
           onChange={(e) => update({ accessToken: e.target.value })}
-          className="font-mono text-xs"
-        />
-      </Section>
-
-      <Section>
-        <Label>Database ID</Label>
-        <Input
-          placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-          value={(meta.databaseId as string) || ""}
-          onChange={(e) => update({ databaseId: e.target.value })}
           className="font-mono text-xs"
         />
       </Section>
