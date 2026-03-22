@@ -46,7 +46,7 @@ export const onNotionConnect = async (
   id: string
 ) => {
   "use server";
-  if (access_token && workspace_id && workspace_name && database_id) {
+  if (access_token && workspace_id && workspace_name) {
     //check if notion is connected (query by userId + workspaceId, not by token)
     const notion_connected = await db.notion.findFirst({
       where: {

@@ -52,7 +52,7 @@ const Connections = async (props: Props) => {
       );
     }
 
-    if (workspace_id && database_id && access_token && !discord_setup) {
+    if (workspace_id && access_token && !discord_setup) {
       await onNotionConnect(
         access_token!,
         workspace_id!,
