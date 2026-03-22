@@ -129,7 +129,7 @@ const DashboardPage = async () => {
     <div className="max-w-5xl mx-auto px-6 py-8 flex flex-col gap-8">
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start sm:items-center justify-between gap-3 flex-wrap">
         <div>
           <h2 className="text-xl font-semibold text-foreground tracking-tight">
             Overview

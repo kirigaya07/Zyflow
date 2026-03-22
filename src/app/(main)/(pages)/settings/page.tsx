@@ -110,13 +110,14 @@ const Settings = async () => {
    */
   const updateUserInfo = async (name: string) => {
     "use server";
+    if (!name || !name.trim()) return null;
 
     const updateUser = await db.user.update({
       where: {
         clerkId: authUser.id,
       },
       data: {
-        name,
+        name: name.trim(),
       },
     });
     return updateUser;
@@ -124,10 +125,10 @@ const Settings = async () => {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="sticky top-0 z-[10] flex items-center justify-between border-b bg-background/50 p-6 text-4xl backdrop-blur-lg">
+      <h1 className="sticky top-0 z-[10] flex items-center justify-between border-b bg-background/50 px-4 py-4 md:px-6 md:py-5 text-2xl md:text-4xl backdrop-blur-lg">
         <span>Settings</span>
       </h1>
-      <div className="flex flex-col gap-10 p-6">
+      <div className="flex flex-col gap-6 md:gap-10 p-4 md:p-6">
         <div>
           <h2 className="text-2xl font-bold">User Profile</h2>
           <p className="text-base text-white/50">

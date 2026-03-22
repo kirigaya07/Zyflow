@@ -32,7 +32,7 @@ const InfoBar = () => {
 
       {/* Right actions */}
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 h-8 px-3 rounded-lg bg-secondary border border-border text-muted-foreground text-xs">
+        <div className="hidden sm:flex items-center gap-2 h-8 px-3 rounded-lg bg-secondary border border-border text-muted-foreground text-xs">
           <Search className="w-3.5 h-3.5 shrink-0" />
           <Input
             placeholder="Search…"

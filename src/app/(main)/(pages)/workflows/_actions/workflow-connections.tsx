@@ -272,16 +272,17 @@ export const onGetWorkflows = async () => {
  * @param description - Brief description of workflow purpose
  * @returns Object containing success or error message
  */
-export const onCreateWorkflow = async (name: string, description: string) => {
+export const onCreateWorkflow = async (name: string, description?: string) => {
+  if (!name) return { message: "Name is required" };
+
   const user = await currentUser();
 
   if (user) {
-    //create new workflow
     const workflow = await db.workflows.create({
       data: {
         userId: user.id,
         name,
-        description,
+        description: description ?? "",
       },
     });
 
@@ -342,11 +343,11 @@ export const getWorkflowRuns = async (workflowId: string) => {
 
   const workflow = await db.workflows.findUnique({
     where: { id: workflowId, userId },
-    select: { id: true },
+    select: { id: true, publish: true },
   });
   if (!workflow) return null;
 
-  return db.workflowRun.findMany({
+  const runs = await db.workflowRun.findMany({
     where: { workflowId },
     orderBy: { startedAt: "desc" },
     take: 20,
@@ -367,6 +368,8 @@ export const getWorkflowRuns = async (workflowId: string) => {
       },
     },
   });
+
+  return { runs, isPublished: workflow.publish ?? false };
 };
 
 /**

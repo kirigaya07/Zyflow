@@ -10,8 +10,10 @@ async function getOrCreateUser(clerkId: string) {
   const clerkUser = await currentUser();
   if (!clerkUser) throw new Error("User not authenticated");
 
-  const email = clerkUser.emailAddresses[0]?.emailAddress ?? "";
-  const name = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ");
+  const email = clerkUser.emailAddresses[0]?.emailAddress;
+  if (!email) throw new Error("User has no email address");
+
+  const name = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") || null;
   const profileImage = clerkUser.imageUrl ?? "";
 
   return db.user.create({

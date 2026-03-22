@@ -138,16 +138,16 @@ const Workflow = ({ description, id, name, publish, lastRun, nodeTypes = [] }: P
       </div>
 
       {/* ── Right: status + toggle + menu ── */}
-      <div className="flex items-center gap-4 shrink-0">
+      <div className="flex items-center gap-2 sm:gap-4 shrink-0">
 
-        {/* Last run */}
+        {/* Last run — hide on xs to save space */}
         {lastRun ? (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground">
             <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", runStatusColor)} />
             {timeAgo(lastRun.createdAt)}
           </div>
         ) : (
-          <span className="text-[11px] text-muted-foreground/60">Never run</span>
+          <span className="hidden sm:inline text-[11px] text-muted-foreground/60">Never run</span>
         )}
 
         {/* Publish toggle */}

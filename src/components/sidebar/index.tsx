@@ -17,7 +17,7 @@ const Sidebar = () => {
   const pathname = usePathname();
 
   return (
-    <aside className="flex flex-col w-14 h-screen border-r border-border bg-background shrink-0 z-20">
+    <aside className="hidden md:flex flex-col w-14 h-screen border-r border-border bg-background shrink-0 z-20">
       {/* Logo */}
       <div className="flex items-center justify-center h-14 border-b border-border shrink-0">
         <LoadingLink href="/dashboard" aria-label="Zyflow home">

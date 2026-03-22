@@ -3,7 +3,16 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Loader2, Redo2, Save, Undo2, Zap, ZapOff } from "lucide-react";
+import {
+  ChevronLeft,
+  LayoutGrid,
+  Loader2,
+  Redo2,
+  Save,
+  Undo2,
+  Zap,
+  ZapOff,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useEditor } from "@/providers/editor-provider";
 import {
@@ -15,7 +24,11 @@ import { cn } from "@/lib/utils";
 import { EditorNodeType } from "@/lib/types";
 
 type FlowEdge = { id: string; source: string; target: string };
-type Props = { nodes: EditorNodeType[]; edges: FlowEdge[] };
+type Props = {
+  nodes: EditorNodeType[];
+  edges: FlowEdge[];
+  onToggleLibrary?: () => void;
+};
 
 /** Kahn's BFS topological sort — returns ordered node IDs. */
 function topologicalSort(nodes: EditorNodeType[], edges: FlowEdge[]): string[] {
@@ -39,7 +52,7 @@ function topologicalSort(nodes: EditorNodeType[], edges: FlowEdge[]): string[] {
   return sorted;
 }
 
-export function EditorToolbar({ nodes, edges }: Props) {
+export function EditorToolbar({ nodes, edges, onToggleLibrary }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const { dispatch } = useEditor();
@@ -115,48 +128,60 @@ export function EditorToolbar({ nodes, edges }: Props) {
         className="h-7 gap-1 text-muted-foreground hover:text-foreground px-2 text-xs"
         onClick={() => router.push("/workflows")}
       >
-        <ChevronLeft className="h-3.5 w-3.5" />
-        Workflows
+        <ChevronLeft className="h-3.5 w-3.5 shrink-0" />
+        <span className="hidden sm:inline">Workflows</span>
       </Button>
 
       <div className="w-px h-4 bg-border mx-1" />
 
-      {/* Name */}
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="text-sm font-medium text-foreground truncate max-w-[180px]">
+      {/* Workflow name + live badge */}
+      <div className="flex items-center gap-2 min-w-0 flex-1 lg:flex-none">
+        <span className="text-sm font-medium text-foreground truncate max-w-[120px] sm:max-w-[160px] lg:max-w-[180px]">
           {workflowName || "Untitled"}
         </span>
         {isPublished && (
-          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900 flex items-center gap-1">
+          <span className="hidden sm:flex text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900 items-center gap-1 shrink-0">
             <span className="w-1 h-1 rounded-full bg-emerald-500 inline-block" />
             Live
           </span>
         )}
       </div>
 
-      <div className="flex-1" />
+      <div className="hidden lg:block flex-1" />
 
-      {/* Undo / Redo */}
+      {/* Mobile: open node library */}
       <Button
         variant="ghost"
         size="icon"
-        className="h-7 w-7 text-muted-foreground hover:text-foreground"
-        onClick={() => dispatch({ type: "UNDO" })}
-        title="Undo"
+        className="lg:hidden h-7 w-7 text-muted-foreground hover:text-foreground"
+        onClick={onToggleLibrary}
+        title="Node library"
       >
-        <Undo2 className="h-3.5 w-3.5" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-7 w-7 text-muted-foreground hover:text-foreground"
-        onClick={() => dispatch({ type: "REDO" })}
-        title="Redo"
-      >
-        <Redo2 className="h-3.5 w-3.5" />
+        <LayoutGrid className="h-4 w-4" />
       </Button>
 
-      <div className="w-px h-4 bg-border mx-1" />
+      {/* Desktop: undo / redo */}
+      <div className="hidden sm:flex items-center gap-0.5">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+          onClick={() => dispatch({ type: "UNDO" })}
+          title="Undo"
+        >
+          <Undo2 className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+          onClick={() => dispatch({ type: "REDO" })}
+          title="Redo"
+        >
+          <Redo2 className="h-3.5 w-3.5" />
+        </Button>
+        <div className="w-px h-4 bg-border mx-1" />
+      </div>
 
       {/* Save */}
       <Button
@@ -170,7 +195,7 @@ export function EditorToolbar({ nodes, edges }: Props) {
           ? <Loader2 className="h-3 w-3 animate-spin" />
           : <Save className="h-3 w-3" />
         }
-        Save
+        <span className="hidden sm:inline">Save</span>
       </Button>
 
       {/* Deploy */}
@@ -191,7 +216,7 @@ export function EditorToolbar({ nodes, edges }: Props) {
           ? <ZapOff className="h-3 w-3" />
           : <Zap className="h-3 w-3" />
         }
-        {isPublished ? "Unpublish" : "Deploy"}
+        <span className="hidden sm:inline">{isPublished ? "Unpublish" : "Deploy"}</span>
       </Button>
     </div>
   );

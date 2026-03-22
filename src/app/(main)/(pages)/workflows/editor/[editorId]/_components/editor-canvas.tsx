@@ -16,7 +16,7 @@ import {
   ReactFlowInstance,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { EditorCanvasCardType, EditorNodeType } from "@/lib/types";
+import { EditorCanvasCardType, EditorCanvasTypes, EditorNodeType } from "@/lib/types";
 import { useEditor } from "@/providers/editor-provider";
 import { usePathname } from "next/navigation";
 import { v4 } from "uuid";
@@ -111,15 +111,18 @@ function LoadingSpinner() {
 function EmptyCanvasOverlay() {
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none z-[1]">
-      <div className="flex flex-col items-center gap-3 text-center">
+      <div className="flex flex-col items-center gap-3 text-center px-6">
         <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center">
           <Zap className="h-6 w-6 text-primary" />
         </div>
         <p className="text-sm font-medium text-muted-foreground">
           Drag a trigger node to get started
         </p>
-        <p className="text-xs text-muted-foreground/60">
+        <p className="text-xs text-muted-foreground/60 hidden sm:block">
           Then connect action nodes to build your workflow
+        </p>
+        <p className="text-xs text-muted-foreground/60 sm:hidden">
+          Tap <span className="font-medium text-muted-foreground">⊞</span> in the toolbar to add nodes
         </p>
       </div>
     </div>
@@ -131,10 +134,20 @@ const EditorCanvas = () => {
   const [nodes, setNodes] = useState<EditorNodeType[]>([]);
   const [edges, setEdges] = useState<{ id: string; source: string; target: string }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const [showMiniMap, setShowMiniMap] = useState(true);
   const [reactFlowInstance, setReactFlowInstance] =
     useState<ReactFlowInstance<EditorNodeType, Edge>>();
   const pathname = usePathname();
   const workflowId = pathname.split("/").pop()!;
+
+  /** Track screen size for MiniMap visibility */
+  useEffect(() => {
+    const check = () => setShowMiniMap(window.innerWidth >= 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   /** Keep the editor context in sync with local node/edge state. */
   useEffect(() => {
@@ -160,7 +173,7 @@ const EditorCanvas = () => {
     const handleKeyDown = async (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "s") {
         e.preventDefault();
-        const flowPath = topologicalSort(nodes, edges);
+        const flowPath = topologicalSort(state.editor.elements, edges);
         if (!flowPath.length) {
           toast.error("Connect your nodes before saving.");
           return;
@@ -168,7 +181,7 @@ const EditorCanvas = () => {
         try {
           const res = await onCreateNodesEdges(
             workflowId,
-            JSON.stringify(nodes),
+            JSON.stringify(state.editor.elements),
             JSON.stringify(edges),
             JSON.stringify(flowPath)
           );
@@ -180,7 +193,7 @@ const EditorCanvas = () => {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [nodes, edges, workflowId]);
+  }, [state.editor.elements, edges, workflowId]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) =>
@@ -251,6 +264,51 @@ const EditorCanvas = () => {
     [reactFlowInstance, state]
   );
 
+  /** Add a node at the canvas viewport center (for mobile tap-to-add). */
+  const addNodeAtCenter = useCallback(
+    (type: EditorCanvasTypes) => {
+      const isTriggerType = EditorCanvasDefaultCardTypes[type]?.type === "Trigger";
+      const hasTrigger = state.editor.elements.some(
+        (n) => EditorCanvasDefaultCardTypes[n.type]?.type === "Trigger"
+      );
+
+      if (isTriggerType && hasTrigger) {
+        toast("Only one trigger node is allowed per workflow.");
+        return;
+      }
+
+      let position = { x: 200 + Math.random() * 80, y: 200 + Math.random() * 80 };
+
+      if (reactFlowInstance) {
+        const { x, y, zoom } = reactFlowInstance.getViewport();
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        position = {
+          x: (vw / 2 - x) / zoom - 100 + (Math.random() - 0.5) * 60,
+          y: (vh / 2 - y) / zoom - 40 + (Math.random() - 0.5) * 60,
+        };
+      }
+
+      const newNode: EditorNodeType = {
+        id: v4(),
+        type,
+        position,
+        data: {
+          title: type,
+          description: EditorCanvasDefaultCardTypes[type]?.description ?? "",
+          completed: false,
+          current: false,
+          metadata: {},
+          type,
+        },
+      };
+
+      // @ts-ignore
+      setNodes((nds) => nds.concat(newNode));
+    },
+    [reactFlowInstance, state]
+  );
+
   /** Deselect node when clicking the canvas background. */
   const handleClickCanvas = () => {
     dispatch({
@@ -279,14 +337,23 @@ const EditorCanvas = () => {
   return (
     <div className="flex flex-col h-full overflow-hidden bg-background">
       {/* ── Top toolbar ───────────────────────────────────── */}
-      <EditorToolbar nodes={nodes} edges={edges} />
+      <EditorToolbar
+        nodes={nodes}
+        edges={edges}
+        onToggleLibrary={() => setIsLibraryOpen((v) => !v)}
+      />
 
       {/* ── Main content area ─────────────────────────────── */}
-      <div className="flex flex-1 min-h-0">
-        {/* Left: Node library */}
-        <NodeLibrary nodes={nodes} />
+      <div className="flex flex-1 min-h-0 relative">
+        {/* Left: Node library (sidebar on desktop, sheet on mobile) */}
+        <NodeLibrary
+          nodes={nodes}
+          isOpen={isLibraryOpen}
+          onClose={() => setIsLibraryOpen(false)}
+          onAddNode={addNodeAtCenter}
+        />
 
-        {/* Center: React Flow canvas */}
+        {/* Center: React Flow canvas — always full width on mobile */}
         <div className="flex-1 relative" onClick={handleClickCanvas}>
           {isLoading && <LoadingSpinner />}
           {isEmpty && <EmptyCanvasOverlay />}
@@ -310,18 +377,23 @@ const EditorCanvas = () => {
             deleteKeyCode="Delete"
             proOptions={{ hideAttribution: true }}
           >
-            <Controls position="bottom-right" className="!bottom-4 !right-4" />
-            <MiniMap
-              position="bottom-left"
-              className="!bg-card !border !border-border !rounded-md !bottom-4 !left-4"
-              zoomable
-              pannable
+            <Controls
+              position="bottom-right"
+              className="!bottom-4 !right-4"
             />
+            {showMiniMap && (
+              <MiniMap
+                position="bottom-left"
+                className="!bg-card !border !border-border !rounded-md !bottom-4 !left-4"
+                zoomable
+                pannable
+              />
+            )}
             <Background variant={"dots" as BackgroundVariant} gap={16} size={1} />
           </ReactFlow>
         </div>
 
-        {/* Right: Node config panel (visible when a node is selected) */}
+        {/* Right: Node config panel (sidebar on desktop, sheet on mobile) */}
         <NodeConfigPanel />
       </div>
     </div>

@@ -8,7 +8,7 @@ type Props = {
 const Billing = async (props: Props) => {
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="sticky top-0 z-[10] flex items-center justify-between border-b bg-background/50 p-6 text-4xl backdrop-blur-lg">
+      <h1 className="sticky top-0 z-[10] flex items-center justify-between border-b bg-background/50 px-4 py-4 md:px-6 md:py-5 text-2xl md:text-4xl backdrop-blur-lg">
         <span>Billing</span>
       </h1>
       <BillingDashboard />

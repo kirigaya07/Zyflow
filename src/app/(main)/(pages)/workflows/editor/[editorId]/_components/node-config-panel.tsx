@@ -850,49 +850,71 @@ export function NodeConfigPanel() {
   };
 
   return (
-    <div className="w-[340px] h-full border-l border-border flex flex-col bg-background shrink-0 overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center gap-2.5 px-4 h-12 border-b border-border shrink-0">
-        <span className="text-muted-foreground shrink-0">
-          <EditorCanvasIconHelper type={selectedNode.data.type} size={14} />
-        </span>
-        <span className="text-sm font-semibold flex-1 truncate text-foreground">
-          {selectedNode.data.title}
-        </span>
-        <span className="text-[10px] font-medium text-muted-foreground bg-secondary px-1.5 py-0.5 rounded-md shrink-0">
-          {selectedNode.data.type}
-        </span>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 text-muted-foreground hover:text-foreground shrink-0"
-          onClick={handleClose}
-        >
-          <X className="h-3.5 w-3.5" />
-        </Button>
+    <>
+      {/* Mobile/tablet backdrop */}
+      <div
+        className="lg:hidden fixed inset-0 bg-black/50 z-40 backdrop-blur-sm"
+        onClick={handleClose}
+      />
+
+      <div className={cn(
+        "bg-background flex flex-col overflow-hidden",
+        // ── Desktop: static right sidebar ─────────────────
+        "lg:w-[340px] lg:h-full lg:border-l lg:border-border lg:shrink-0",
+        "lg:static lg:z-auto lg:rounded-none lg:border-t-0",
+        // ── Mobile / tablet: bottom sheet ─────────────────
+        "fixed bottom-0 left-0 right-0 z-50",
+        "border-t border-border rounded-t-2xl",
+        "max-h-[85vh] lg:max-h-full",
+      )}>
+        {/* Drag handle — mobile only */}
+        <div className="lg:hidden flex justify-center pt-2.5 pb-0 shrink-0">
+          <div className="w-8 h-1 rounded-full bg-border" />
+        </div>
+
+        {/* Header */}
+        <div className="flex items-center gap-2.5 px-4 h-12 border-b border-border shrink-0">
+          <span className="text-muted-foreground shrink-0">
+            <EditorCanvasIconHelper type={selectedNode.data.type} size={14} />
+          </span>
+          <span className="text-sm font-semibold flex-1 truncate text-foreground">
+            {selectedNode.data.title}
+          </span>
+          <span className="text-[10px] font-medium text-muted-foreground bg-secondary px-1.5 py-0.5 rounded-md shrink-0">
+            {selectedNode.data.type}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 text-muted-foreground hover:text-foreground shrink-0"
+            onClick={handleClose}
+          >
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+
+        {/* Tabs */}
+        <Tabs defaultValue="config" className="flex flex-col flex-1 min-h-0">
+          <TabsList className="mx-3 mt-2 mb-0 self-start h-7 bg-secondary/60 rounded-lg p-0.5">
+            <TabsTrigger value="config" className="text-xs h-6 px-3 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              Parameters
+            </TabsTrigger>
+            <TabsTrigger value="logs" className="text-xs h-6 px-3 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              Executions
+            </TabsTrigger>
+          </TabsList>
+
+          <Separator className="mt-2" />
+
+          <TabsContent value="config" className="flex-1 overflow-y-auto p-4 mt-0">
+            <NodeConfigForms node={selectedNode} workflowId={workflowId} />
+          </TabsContent>
+
+          <TabsContent value="logs" className="flex-1 overflow-y-auto mt-0 p-0">
+            <ExecutionLogs />
+          </TabsContent>
+        </Tabs>
       </div>
-
-      {/* Tabs */}
-      <Tabs defaultValue="config" className="flex flex-col flex-1 min-h-0">
-        <TabsList className="mx-3 mt-2 mb-0 self-start h-7 bg-secondary/60 rounded-lg p-0.5">
-          <TabsTrigger value="config" className="text-xs h-6 px-3 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
-            Parameters
-          </TabsTrigger>
-          <TabsTrigger value="logs" className="text-xs h-6 px-3 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
-            Executions
-          </TabsTrigger>
-        </TabsList>
-
-        <Separator className="mt-2" />
-
-        <TabsContent value="config" className="flex-1 overflow-y-auto p-4 mt-0">
-          <NodeConfigForms node={selectedNode} workflowId={workflowId} />
-        </TabsContent>
-
-        <TabsContent value="logs" className="flex-1 overflow-y-auto mt-0 p-0">
-          <ExecutionLogs />
-        </TabsContent>
-      </Tabs>
-    </div>
+    </>
   );
 }

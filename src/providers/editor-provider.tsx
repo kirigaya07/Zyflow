@@ -151,6 +151,10 @@ const editorReducer = (
       const updatedEditor = {
         ...state.editor,
         elements: action.payload.elements,
+        selectedNode:
+          action.payload.elements.find(
+            (el) => el.id === state.editor.selectedNode.id
+          ) ?? state.editor.selectedNode,
       };
       return {
         ...state,

@@ -150,12 +150,16 @@ export default function ExecutionLogs() {
   const pathname = usePathname();
   const workflowId = pathname.split("/").pop()!;
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
+  const [isPublished, setIsPublished] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchRuns = async () => {
     setLoading(true);
     const data = await getWorkflowRuns(workflowId);
-    setRuns((data as WorkflowRun[]) ?? []);
+    if (data && "runs" in data) {
+      setRuns((data.runs as WorkflowRun[]) ?? []);
+      setIsPublished(data.isPublished);
+    }
     setLoading(false);
   };
 
@@ -182,7 +186,9 @@ export default function ExecutionLogs() {
 
       {runs.length === 0 ? (
         <div className="text-center text-muted-foreground text-sm py-10">
-          No executions yet. Publish your workflow and trigger it.
+          {isPublished
+            ? "No executions yet. Trigger your workflow to see runs here."
+            : "No executions yet. Publish your workflow and trigger it."}
         </div>
       ) : (
         runs.map((run) => <WorkflowRunRow key={run.id} run={run} />)

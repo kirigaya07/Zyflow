@@ -7,6 +7,7 @@
  */
 
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 /**
  * Global declaration for Prisma client to enable singleton pattern.
@@ -14,6 +15,14 @@ import { PrismaClient } from "@prisma/client";
  */
 declare global {
   var prisma: PrismaClient | undefined;
+}
+
+function createPrismaClient() {
+  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+  return new PrismaClient({
+    adapter,
+    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+  });
 }
 
 /**
@@ -37,11 +46,7 @@ declare global {
  * const users = await db.user.findMany();
  * ```
  */
-export const db =
-  globalThis.prisma ||
-  new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
-  });
+export const db = globalThis.prisma || createPrismaClient();
 
 // Store the client globally in non-production environments to prevent multiple instances
 if (process.env.NODE_ENV !== "production") globalThis.prisma = db;

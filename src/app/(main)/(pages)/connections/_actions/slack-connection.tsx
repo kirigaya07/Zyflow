@@ -50,7 +50,7 @@ export const onSlackConnect = async (
   team_name: string,
   user_id: string
 ): Promise<void> => {
-  if (!slack_access_token) return;
+  if (!slack_access_token || !authed_user_token || !team_id || !user_id) return;
 
   // Check by userId + teamId (not by token, since token will be encrypted)
   const slackConnection = await db.slack.findFirst({

@@ -1,5 +1,6 @@
 import InfoBar from "@/components/infobar";
 import Sidebar from "@/components/sidebar";
+import MobileNav from "@/components/mobile-nav";
 import React from "react";
 
 type Props = { children: React.ReactNode };
@@ -14,6 +15,7 @@ const Layout = ({ children }: Props) => {
           {children}
         </main>
       </div>
+      <MobileNav />
     </div>
   );
 };

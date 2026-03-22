@@ -6,14 +6,6 @@ import { useRouter } from "next/navigation";
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "../ui/form";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { Loader2 } from "lucide-react";
@@ -23,70 +15,77 @@ import { toast } from "sonner";
 
 const Workflowform = () => {
   const { setClose } = useModal();
-  const form = useForm<z.infer<typeof WorkflowFormSchema>>({
-    mode: "onChange",
+  const router = useRouter();
+
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<z.infer<typeof WorkflowFormSchema>>({
     resolver: zodResolver(WorkflowFormSchema),
     defaultValues: { name: "", description: "" },
   });
 
-  const isLoading = form.formState.isSubmitting;
-  const router = useRouter();
-
-  const handleSubmit = async (values: z.infer<typeof WorkflowFormSchema>) => {
-    const workflow = await onCreateWorkflow(values.name, values.description);
-    if (workflow) {
-      toast.success(workflow.message);
-      router.refresh();
+  const onSubmit = async (values: z.infer<typeof WorkflowFormSchema>) => {
+    const name = values.name?.trim();
+    if (!name) {
+      setError("name", { message: "Name is required" });
+      return;
     }
-    setClose();
+    const workflow = await onCreateWorkflow(name, values.description ?? "");
+
+    if (workflow?.message === "workflow created") {
+      toast.success("Workflow created!");
+      router.refresh();
+      setClose();
+    } else if (workflow?.message) {
+      toast.error(workflow.message);
+    }
   };
 
   return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(handleSubmit)}
-        className="flex flex-col gap-4"
-      >
-        <FormField
-          disabled={isLoading}
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name</FormLabel>
-              <FormControl>
-                <Input {...field} placeholder="My workflow" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+      <div className="grid gap-2">
+        <label htmlFor="wf-name" className="text-sm font-medium">
+          Name
+        </label>
+        <Input
+          id="wf-name"
+          placeholder="My workflow"
+          {...register("name")}
         />
-        <FormField
-          disabled={isLoading}
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Description <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
-              <FormControl>
-                <Input placeholder="What does this workflow do?" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+        {errors.name && (
+          <p className="text-destructive text-sm">{errors.name.message}</p>
+        )}
+      </div>
+
+      <div className="grid gap-2">
+        <label htmlFor="wf-desc" className="text-sm font-medium">
+          Description{" "}
+          <span className="text-muted-foreground font-normal">(optional)</span>
+        </label>
+        <Input
+          id="wf-desc"
+          placeholder="What does this workflow do?"
+          {...register("description")}
         />
-        <Button className="mt-2 w-full" disabled={isLoading} type="submit">
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Creating…
-            </>
-          ) : (
-            "Create Workflow"
-          )}
-        </Button>
-      </form>
-    </Form>
+        {errors.description && (
+          <p className="text-destructive text-sm">{errors.description.message}</p>
+        )}
+      </div>
+
+      <Button className="mt-2 w-full" disabled={isSubmitting} type="submit">
+        {isSubmitting ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Creating…
+          </>
+        ) : (
+          "Create Workflow"
+        )}
+      </Button>
+    </form>
   );
 };
 
