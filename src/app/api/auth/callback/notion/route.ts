@@ -23,16 +23,6 @@ export async function GET(req: NextRequest) {
       }),
     });
     if (response) {
-      // Use the database ID from your Notion workspace
-      // Format: 28eb6093-eb0f-800f-bbf3-d553b72d9dc2
-      const databaseId = "28eb6093-eb0f-800f-bbf3-d553b72d9dc2";
-
-      console.log("Access Token received");
-      console.log("Database ID:", databaseId);
-      console.log("Workspace ID:", response.data.workspace_id);
-      console.log("Owner workspace_id:", response.data.owner?.workspace);
-
-      // Notion returns workspace_id in owner.workspace for workspace owners
       const workspaceId =
         response.data.workspace_id || response.data.owner?.workspace || "";
 
@@ -43,10 +33,10 @@ export async function GET(req: NextRequest) {
           response.data.workspace_name || ""
         )}&workspace_icon=${encodeURIComponent(
           response.data.workspace_icon || ""
-        )}&workspace_id=${workspaceId}&database_id=${databaseId}`
+        )}&workspace_id=${workspaceId}`
       );
     }
   }
 
-  return NextResponse.redirect("${process.env.NEXT_PUBLIC_APP_URL}/connections");
+  return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/connections`);
 }
