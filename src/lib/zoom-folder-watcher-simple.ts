@@ -589,7 +589,7 @@ Note: Speech-to-text conversion failed. Audio file has been saved to Google Driv
   ) {
     try {
       // Trigger your existing workflow notification system
-      const baseUrl = process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
       const response = await fetch(
         `${baseUrl}/api/drive-activity/notification`,
         {
