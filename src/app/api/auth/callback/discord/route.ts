@@ -22,14 +22,14 @@ export async function GET(req: NextRequest) {
     if (error) {
       console.error("Discord OAuth error:", error, error_description);
       return NextResponse.redirect(
-        `https://localhost:3000/connections?error=discord_${error}`
+        `${process.env.NEXT_PUBLIC_APP_URL}/connections?error=discord_${error}`
       );
     }
 
     if (!code) {
       console.error("No authorization code received");
       return NextResponse.redirect(
-        "https://localhost:3000/connections?error=no_code"
+        "${process.env.NEXT_PUBLIC_APP_URL}/connections?error=no_code"
       );
     }
 
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
     data.append("grant_type", "authorization_code");
     data.append(
       "redirect_uri",
-      "https://localhost:3000/api/auth/callback/discord"
+      "${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback/discord"
     );
     data.append("code", code.toString());
 
@@ -100,7 +100,7 @@ export async function GET(req: NextRequest) {
           if (!botToken) {
             console.error("Discord bot token not configured");
             return NextResponse.redirect(
-              `https://localhost:3000/connections?access_token=${access}&guild_id=${
+              `${process.env.NEXT_PUBLIC_APP_URL}/connections?access_token=${access}&guild_id=${
                 selectedGuild.id
               }&guild_name=${encodeURIComponent(
                 selectedGuild.name
@@ -125,7 +125,7 @@ export async function GET(req: NextRequest) {
           if (!textChannel) {
             console.error("No text channels found in guild");
             return NextResponse.redirect(
-              `https://localhost:3000/connections?access_token=${access}&guild_id=${
+              `${process.env.NEXT_PUBLIC_APP_URL}/connections?access_token=${access}&guild_id=${
                 selectedGuild.id
               }&guild_name=${encodeURIComponent(
                 selectedGuild.name
@@ -176,7 +176,7 @@ export async function GET(req: NextRequest) {
 
           // Redirect with webhook details
           return NextResponse.redirect(
-            `https://localhost:3000/connections?` +
+            `${process.env.NEXT_PUBLIC_APP_URL}/connections?` +
               `webhook_id=${webhook.id}&` +
               `webhook_url=${encodeURIComponent(webhook.url)}&` +
               `webhook_name=${encodeURIComponent(webhook.name)}&` +
@@ -191,7 +191,7 @@ export async function GET(req: NextRequest) {
           );
           // Fall back to setup mode
           return NextResponse.redirect(
-            `https://localhost:3000/connections?access_token=${access}&guild_id=${
+            `${process.env.NEXT_PUBLIC_APP_URL}/connections?access_token=${access}&guild_id=${
               selectedGuild.id
             }&guild_name=${encodeURIComponent(
               selectedGuild.name
@@ -200,23 +200,23 @@ export async function GET(req: NextRequest) {
         }
       } else {
         return NextResponse.redirect(
-          "https://localhost:3000/connections?error=no_guilds"
+          "${process.env.NEXT_PUBLIC_APP_URL}/connections?error=no_guilds"
         );
       }
     } else {
       return NextResponse.redirect(
-        "https://localhost:3000/connections?error=no_token"
+        "${process.env.NEXT_PUBLIC_APP_URL}/connections?error=no_token"
       );
     }
 
     // This should never be reached, but just in case
     return NextResponse.redirect(
-      "https://localhost:3000/connections?error=unknown"
+      "${process.env.NEXT_PUBLIC_APP_URL}/connections?error=unknown"
     );
   } catch (error) {
     console.error("Discord OAuth error:", error);
     return NextResponse.redirect(
-      "https://localhost:3000/connections?error=oauth_failed"
+      "${process.env.NEXT_PUBLIC_APP_URL}/connections?error=oauth_failed"
     );
   }
 }

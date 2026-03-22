@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
         response.data.workspace_id || response.data.owner?.workspace || "";
 
       return NextResponse.redirect(
-        `https://localhost:3000/connections?access_token=${
+        `${process.env.NEXT_PUBLIC_APP_URL}/connections?access_token=${
           response.data.access_token
         }&workspace_name=${encodeURIComponent(
           response.data.workspace_name || ""
@@ -48,5 +48,5 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.redirect("https://localhost:3000/connections");
+  return NextResponse.redirect("${process.env.NEXT_PUBLIC_APP_URL}/connections");
 }
