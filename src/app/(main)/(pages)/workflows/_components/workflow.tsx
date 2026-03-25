@@ -39,6 +39,7 @@ type Props = {
   id: string;
   publish: boolean | null;
   lastRun?: LastRun;
+  runCount?: number;
   nodeTypes?: EditorCanvasTypes[];
 };
 
@@ -70,7 +71,7 @@ function timeAgo(date: Date): string {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
-const Workflow = ({ description, id, name, publish, lastRun, nodeTypes = [] }: Props) => {
+const Workflow = ({ description, id, name, publish, lastRun, runCount = 0, nodeTypes = [] }: Props) => {
   const router = useRouter();
 
   const onPublishFlow = async (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -140,15 +141,22 @@ const Workflow = ({ description, id, name, publish, lastRun, nodeTypes = [] }: P
       {/* ── Right: status + toggle + menu ── */}
       <div className="flex items-center gap-2 sm:gap-4 shrink-0">
 
-        {/* Last run — hide on xs to save space */}
-        {lastRun ? (
-          <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", runStatusColor)} />
-            {timeAgo(lastRun.createdAt)}
-          </div>
-        ) : (
-          <span className="hidden sm:inline text-[11px] text-muted-foreground/60">Never run</span>
-        )}
+        {/* Last run + run count — hide on xs to save space */}
+        <div className="hidden sm:flex flex-col items-end gap-0.5">
+          {lastRun ? (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", runStatusColor)} />
+              {timeAgo(lastRun.createdAt)}
+            </div>
+          ) : (
+            <span className="text-[11px] text-muted-foreground/60">Never run</span>
+          )}
+          {runCount > 0 && (
+            <span className="text-[10px] text-muted-foreground/60">
+              {runCount} {runCount === 1 ? "run" : "runs"}
+            </span>
+          )}
+        </div>
 
         {/* Publish toggle */}
         <div className="flex flex-col items-center gap-0.5">

@@ -35,7 +35,7 @@ import {
 export default function ZoomWatcherControl() {
   const [isWatching, setIsWatching] = useState(false);
   const [zoomFolderPath, setZoomFolderPath] = useState(
-    "C:\\Users\\anmol\\OneDrive\\Documents\\Zoom"
+    process.env.NEXT_PUBLIC_ZOOM_FOLDER_PATH || ""
   );
   const [isLoading, setIsLoading] = useState(false);
   const [enableWhisper, setEnableWhisper] = useState(true);
@@ -138,7 +138,7 @@ export default function ZoomWatcherControl() {
           "x-test-bypass": "1",
         },
         body: JSON.stringify({
-          path: "C:\\Users\\anmol\\OneDrive\\Documents\\Zoom\\2025-10-22 10.51.33 kirigaya kirito's Zoom Meeting\\audio1474378777.m4a",
+          path: process.env.NEXT_PUBLIC_ZOOM_TEST_FILE_PATH || "",
         }),
       });
 
@@ -198,7 +198,7 @@ export default function ZoomWatcherControl() {
               type="text"
               value={zoomFolderPath}
               onChange={(e) => setZoomFolderPath(e.target.value)}
-              placeholder="C:\\Users\\anmol\\OneDrive\\Documents\\Zoom"
+              placeholder="C:\\Users\\YourName\\Documents\\Zoom"
               className="font-mono text-sm"
             />
           </div>

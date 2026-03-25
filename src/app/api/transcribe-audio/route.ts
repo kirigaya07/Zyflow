@@ -29,9 +29,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const zoomFolderPath =
-      process.env.ZOOM_FOLDER_PATH ||
-      "C:\\Users\\anmol\\OneDrive\\Documents\\Zoom";
+    const zoomFolderPath = process.env.ZOOM_FOLDER_PATH || "";
 
     const watcher = new ZoomFolderWatcher(zoomFolderPath);
     await watcher.processAudioFileManual(filePath);

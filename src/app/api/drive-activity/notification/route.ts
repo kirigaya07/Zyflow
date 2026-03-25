@@ -157,37 +157,43 @@ async function processZoomAudioFiles(
 
     const drive = google.drive({ version: "v3", auth: oauth2Client });
 
-    // Find the specific Zoom backup folder structure
-    // Path: crimsomemoon7@gmail.com_zBackup > crimsomemoon7@gmail.com
+    // Find any Zoom backup folder dynamically (search by pattern, not hardcoded name)
     let zoomBackupFolder: string | null = null;
     let userEmailFolder: string | null = null;
 
-    // First, find the crimsomemoon7@gmail.com_zBackup folder
+    // Search for any folder that looks like a Zoom backup (contains "Zoom", "zoom", "zBackup", or "meeting")
     const backupFolders = await drive.files.list({
-      q: "mimeType='application/vnd.google-apps.folder' and name='crimsomemoon7@gmail.com_zBackup'",
+      q: "mimeType='application/vnd.google-apps.folder' and (name contains 'zBackup' or name contains 'Zoom' or name contains 'zoom' or name contains 'meeting')",
       fields: "files(id,name)",
-      pageSize: 1,
+      pageSize: 10,
+      orderBy: "modifiedTime desc",
     });
 
     if (backupFolders.data.files && backupFolders.data.files.length > 0) {
-      zoomBackupFolder = backupFolders.data.files[0].id || null;
-      console.log("📁 Found Zoom backup folder:", zoomBackupFolder);
+      // Prefer folders that have "zBackup" in the name as they are most likely Zoom backup roots
+      const preferredFolder =
+        backupFolders.data.files.find((f) => f.name?.includes("zBackup")) ||
+        backupFolders.data.files[0];
+      zoomBackupFolder = preferredFolder.id || null;
+      console.log("📁 Found Zoom backup folder:", preferredFolder.name, zoomBackupFolder);
 
-      // Now find the crimsomemoon7@gmail.com folder inside it
+      // Find any subfolder inside the backup folder (the user's email/account folder)
       const emailFolders = await drive.files.list({
-        q: `'${zoomBackupFolder}' in parents and mimeType='application/vnd.google-apps.folder' and name='crimsomemoon7@gmail.com'`,
+        q: `'${zoomBackupFolder}' in parents and mimeType='application/vnd.google-apps.folder'`,
         fields: "files(id,name)",
-        pageSize: 1,
+        pageSize: 5,
+        orderBy: "modifiedTime desc",
       });
 
       if (emailFolders.data.files && emailFolders.data.files.length > 0) {
         userEmailFolder = emailFolders.data.files[0].id || null;
-        console.log("📁 Found user email folder:", userEmailFolder);
+        console.log("📁 Found user email folder:", emailFolders.data.files[0].name, userEmailFolder);
       }
     }
 
     if (!userEmailFolder) {
-      console.log("⚠️ Zoom backup folder structure not found");
+      // No Zoom backup folder structure found — fall back to processing as regular Drive activity
+      console.log("⚠️ No Zoom backup folder structure found — skipping Zoom audio processing");
       return { newFilesProcessed: false, filesProcessed: 0 };
     }
 
@@ -681,7 +687,7 @@ async function processZoomAudioFiles(
           `📍 Summary stored at: https://drive.google.com/file/d/${uploadResult.id}/view`
         );
         console.log(
-          `📂 Path: crimsomemoon7@gmail.com_zBackup > crimsomemoon7@gmail.com > summary > ${meetingFolderName} > ${summaryName}`
+          `📂 Path: [Zoom backup folder] > [user folder] > summary > ${meetingFolderName} > ${summaryName}`
         );
         filesProcessed++;
       } else {

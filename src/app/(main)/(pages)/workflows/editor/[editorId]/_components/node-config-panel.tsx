@@ -731,6 +731,62 @@ function SetFieldsConfig({
   );
 }
 
+function CronTriggerConfig({
+  meta,
+  update,
+}: {
+  meta: Record<string, unknown>;
+  update: (updates: Record<string, unknown>) => void;
+}) {
+  const schedules: { value: string; label: string; cron: string }[] = [
+    { value: "every_hour",        label: "Every hour",           cron: "0 * * * *"     },
+    { value: "every_day_9am",     label: "Every day at 9 AM",    cron: "0 9 * * *"     },
+    { value: "every_day_midnight",label: "Every day at midnight", cron: "0 0 * * *"    },
+    { value: "every_monday",      label: "Every Monday at 9 AM", cron: "0 9 * * 1"     },
+    { value: "every_weekday",     label: "Every weekday at 9 AM",cron: "0 9 * * 1-5"   },
+    { value: "every_sunday",      label: "Every Sunday at midnight", cron: "0 0 * * 0" },
+  ];
+
+  const selected = (meta.schedule as string) || "every_day_9am";
+  const cronExpr = schedules.find((s) => s.value === selected)?.cron ?? "0 9 * * *";
+
+  return (
+    <div className="flex flex-col gap-4">
+      <Section>
+        <Label>Schedule</Label>
+        <Select
+          value={selected}
+          onValueChange={(v) => {
+            const match = schedules.find((s) => s.value === v);
+            update({ schedule: v, cron: match?.cron ?? "0 9 * * *" });
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {schedules.map((s) => (
+              <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Section>
+
+      <div className="rounded-md border px-3 py-2 bg-muted/40">
+        <p className="text-[11px] text-muted-foreground">
+          Cron expression:{" "}
+          <code className="bg-muted px-1 rounded text-[10px] font-mono">{cronExpr}</code>
+        </p>
+      </div>
+
+      <p className="text-[11px] text-muted-foreground">
+        All times are UTC. The workflow will fire automatically on this schedule
+        when published.
+      </p>
+    </div>
+  );
+}
+
 function GoogleDriveConfig() {
   return (
     <div className="flex flex-col gap-3">
@@ -795,6 +851,8 @@ function NodeConfigForms({
       return <EmailConfig meta={meta} update={updateNodeMetadata} />;
     case "Set Fields":
       return <SetFieldsConfig meta={meta} update={updateNodeMetadata} />;
+    case "Cron Trigger":
+      return <CronTriggerConfig meta={meta} update={updateNodeMetadata} />;
     case "Google Drive":
       return <GoogleDriveConfig />;
     default:

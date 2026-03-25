@@ -50,6 +50,7 @@ const NODE_TYPES = {
   "Webhook Trigger":EditorCanvasCardSingle,
   Code:             EditorCanvasCardSingle,
   "Set Fields":     EditorCanvasCardSingle,
+  "Cron Trigger":   EditorCanvasCardSingle,
 } as const;
 
 const DEFAULT_EDGE_OPTIONS = {

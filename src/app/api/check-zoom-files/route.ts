@@ -59,11 +59,12 @@ export async function POST(req: Request) {
     oauth2Client.setCredentials({ access_token: clerkResponse.data[0].token });
     const drive = google.drive({ version: "v3", auth: oauth2Client });
 
-    // Find the specific Zoom backup folder structure
+    // Find any Zoom backup folder dynamically (search by pattern, not hardcoded name)
     const backupFolders = await drive.files.list({
-      q: "mimeType='application/vnd.google-apps.folder' and name='crimsomemoon7@gmail.com_zBackup'",
+      q: "mimeType='application/vnd.google-apps.folder' and (name contains 'zBackup' or name contains 'Zoom' or name contains 'zoom' or name contains 'meeting')",
       fields: "files(id,name)",
-      pageSize: 1,
+      pageSize: 10,
+      orderBy: "modifiedTime desc",
     });
 
     if (!backupFolders.data.files || backupFolders.data.files.length === 0) {
@@ -73,19 +74,24 @@ export async function POST(req: Request) {
       });
     }
 
-    const zoomBackupFolder = backupFolders.data.files[0].id;
+    // Prefer folders with "zBackup" in the name as they are most likely Zoom backup roots
+    const preferredBackup =
+      backupFolders.data.files.find((f) => f.name?.includes("zBackup")) ||
+      backupFolders.data.files[0];
+    const zoomBackupFolder = preferredBackup.id;
 
-    // Find the email folder inside it
+    // Find any subfolder inside the backup folder (the user's account folder)
     const emailFolders = await drive.files.list({
-      q: `'${zoomBackupFolder}' in parents and mimeType='application/vnd.google-apps.folder' and name='crimsomemoon7@gmail.com'`,
+      q: `'${zoomBackupFolder}' in parents and mimeType='application/vnd.google-apps.folder'`,
       fields: "files(id,name)",
-      pageSize: 1,
+      pageSize: 5,
+      orderBy: "modifiedTime desc",
     });
 
     const zoomFolder = emailFolders.data.files?.[0];
     if (!zoomFolder) {
       return NextResponse.json({
-        message: "Email folder not found inside backup folder",
+        message: "No subfolder found inside Zoom backup folder",
         suggestion: "Files may not be uploaded yet, will retry later",
       });
     }

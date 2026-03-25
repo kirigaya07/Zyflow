@@ -15,6 +15,11 @@ import {
   Mic,
   ArrowUpRight,
   Circle,
+  Plus,
+  Link2,
+  ScrollText,
+  TrendingUp,
+  Star,
 } from "lucide-react";
 import {
   getDashboardStats,
@@ -155,20 +160,14 @@ const DashboardPage = async () => {
         <StatCard
           label="Workflows"
           value={stats.totalWorkflows}
-          sub={`${stats.activeAutomations} active`}
+          sub={`${stats.activeAutomations} published · ${stats.unpublishedWorkflows} draft`}
           icon={BarChart3}
         />
         <StatCard
-          label="Total Runs"
-          value={stats.totalRuns}
-          sub={`${stats.successCount} succeeded`}
+          label="Runs (30 days)"
+          value={stats.last30DaysRuns}
+          sub={`${stats.totalRuns} all time`}
           icon={Zap}
-        />
-        <StatCard
-          label="Time Saved"
-          value={`${stats.totalSavings}h`}
-          sub="~0.5h per success"
-          icon={Clock}
         />
         <StatCard
           label="Success Rate"
@@ -176,6 +175,85 @@ const DashboardPage = async () => {
           sub={stats.totalRuns > 0 ? `${stats.failedCount} failed` : "No runs yet"}
           icon={Activity}
         />
+        <StatCard
+          label="Time Saved"
+          value={`${stats.totalSavings}h`}
+          sub="~0.5h per success"
+          icon={Clock}
+        />
+      </div>
+
+      {/* ── Quick Actions + Most Active ── */}
+      <div className="grid sm:grid-cols-2 gap-4">
+        {/* Quick Actions */}
+        <div className="rounded-xl border border-border bg-card p-5 flex flex-col gap-3">
+          <h3 className="text-sm font-semibold text-foreground">Quick Actions</h3>
+          <div className="flex flex-col gap-2">
+            <LoadingLink
+              href="/workflows"
+              className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-secondary transition-colors text-sm text-foreground group"
+            >
+              <span className="p-1 rounded-md bg-secondary group-hover:bg-primary/10 transition-colors text-primary">
+                <Plus className="w-3.5 h-3.5" />
+              </span>
+              Create Workflow
+            </LoadingLink>
+            <LoadingLink
+              href="/connections"
+              className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-secondary transition-colors text-sm text-foreground group"
+            >
+              <span className="p-1 rounded-md bg-secondary group-hover:bg-primary/10 transition-colors text-primary">
+                <Link2 className="w-3.5 h-3.5" />
+              </span>
+              View Connections
+            </LoadingLink>
+            <LoadingLink
+              href="/logs"
+              className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-secondary transition-colors text-sm text-foreground group"
+            >
+              <span className="p-1 rounded-md bg-secondary group-hover:bg-primary/10 transition-colors text-primary">
+                <ScrollText className="w-3.5 h-3.5" />
+              </span>
+              View Logs
+            </LoadingLink>
+          </div>
+        </div>
+
+        {/* Most Active + extra metrics */}
+        <div className="rounded-xl border border-border bg-card p-5 flex flex-col gap-4">
+          <h3 className="text-sm font-semibold text-foreground">Highlights</h3>
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <span className="p-1.5 rounded-lg bg-secondary text-muted-foreground shrink-0">
+                <Star className="w-3.5 h-3.5" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Most active workflow</p>
+                <p className="text-sm text-foreground font-medium truncate">
+                  {stats.mostActiveWorkflow ?? "—"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="p-1.5 rounded-lg bg-secondary text-muted-foreground shrink-0">
+                <TrendingUp className="w-3.5 h-3.5" />
+              </span>
+              <div>
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Successful runs</p>
+                <p className="text-sm text-foreground font-medium">{stats.successCount}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="p-1.5 rounded-lg bg-secondary text-muted-foreground shrink-0">
+                <Clock className="w-3.5 h-3.5" />
+              </span>
+              <div>
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Time saved</p>
+                <p className="text-sm text-foreground font-medium">{stats.totalSavings}h</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ── Main grid ── */}

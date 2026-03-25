@@ -1,5 +1,6 @@
 import { postContentToWebHook } from "@/app/(main)/(pages)/connections/_actions/discord-connection";
 import { db } from "@/lib/db";
+import { interpolate } from "../expressions";
 import type { ExecutionContext, Item, NodeConfig, NodeExecutor } from "../types";
 
 export class DiscordExecutor implements NodeExecutor {
@@ -26,7 +27,8 @@ export class DiscordExecutor implements NodeExecutor {
       return [{ json: { skipped: true, reason: "No webhook URL or template configured" } }];
     }
 
-    const result = await postContentToWebHook(template, url);
+    const message = interpolate(template, ctx.nodeOutputs, ctx.triggerPayload);
+    const result = await postContentToWebHook(message, url);
 
     return [
       {

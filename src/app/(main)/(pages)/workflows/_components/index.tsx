@@ -1,6 +1,6 @@
 import React from "react";
 import Workflow from "./workflow";
-import { getLastRunsForWorkflows, onGetWorkflows } from "../_actions/workflow-connections";
+import { getLastRunsForWorkflows, getRunCountsForWorkflows, onGetWorkflows } from "../_actions/workflow-connections";
 import { EditorCanvasTypes } from "@/lib/types";
 
 type Props = object;
@@ -23,9 +23,11 @@ function parseNodeTypes(nodesJson: string | null | undefined): EditorCanvasTypes
 
 const Workflows = async (_props: Props) => {
   const workflows = await onGetWorkflows();
-  const lastRuns = await getLastRunsForWorkflows(
-    workflows?.map((w) => w.id) ?? []
-  );
+  const workflowIds = workflows?.map((w) => w.id) ?? [];
+  const [lastRuns, runCounts] = await Promise.all([
+    getLastRunsForWorkflows(workflowIds),
+    getRunCountsForWorkflows(workflowIds),
+  ]);
   const lastRunMap = new Map(lastRuns.map((r) => [r.workflowId, r]));
 
   return (
@@ -39,6 +41,7 @@ const Workflows = async (_props: Props) => {
             description={flow.description}
             publish={flow.publish}
             lastRun={lastRunMap.get(flow.id) ?? null}
+            runCount={runCounts[flow.id] ?? 0}
             nodeTypes={parseNodeTypes(flow.nodes)}
           />
         ))

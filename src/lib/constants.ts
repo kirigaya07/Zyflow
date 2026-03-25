@@ -132,6 +132,10 @@ export const EditorCanvasDefaultCardTypes = {
     description: "Add, overwrite, or replace fields on each item passing through.",
     type: "Action",
   },
+  "Cron Trigger": {
+    description: "Run workflow on a schedule (hourly, daily, weekly)",
+    type: "Trigger",
+  },
 };
 
 /**

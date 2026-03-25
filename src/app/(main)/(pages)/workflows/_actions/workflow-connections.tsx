@@ -405,6 +405,24 @@ export const duplicateWorkflow = async (workflowId: string) => {
 };
 
 /**
+ * Returns the total execution log count for each of the given workflow IDs.
+ * Used by the workflow list to show run counts on each card.
+ */
+export const getRunCountsForWorkflows = async (
+  workflowIds: string[]
+): Promise<Record<string, number>> => {
+  if (!workflowIds.length) return {};
+
+  const rows = await db.executionLog.groupBy({
+    by: ["workflowId"],
+    where: { workflowId: { in: workflowIds } },
+    _count: { id: true },
+  });
+
+  return Object.fromEntries(rows.map((r) => [r.workflowId, r._count.id]));
+};
+
+/**
  * Returns the most recent ExecutionLog entry for each of the given workflow IDs.
  * Used by the workflow list to show last-run status on each card.
  */

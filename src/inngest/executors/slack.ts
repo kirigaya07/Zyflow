@@ -1,5 +1,6 @@
 import { postMessageToSlack } from "@/app/(main)/(pages)/connections/_actions/slack-connection";
 import { safeDecrypt } from "@/lib/encryption";
+import { interpolate } from "../expressions";
 import type { ExecutionContext, Item, NodeConfig, NodeExecutor } from "../types";
 
 export class SlackExecutor implements NodeExecutor {
@@ -22,7 +23,8 @@ export class SlackExecutor implements NodeExecutor {
       return [{ json: { skipped: true, reason: "Incomplete Slack configuration" } }];
     }
 
-    const result = await postMessageToSlack(safeDecrypt(rawToken), channels, template);
+    const message = interpolate(template, ctx.nodeOutputs, ctx.triggerPayload);
+    const result = await postMessageToSlack(safeDecrypt(rawToken), channels, message);
 
     return [
       {

@@ -1,15 +1,41 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { db } from "@/lib/db";
 import { inngest } from "@/inngest/client";
+
+/** Max allowed POST body size: 1 MB */
+const MAX_PAYLOAD_BYTES = 1 * 1024 * 1024;
+
+/** UUID v4 shape */
+const uuidSchema = z.string().uuid("workflowId must be a valid UUID");
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ workflowId: string }> }
 ) {
   try {
-    const { workflowId } = await params;
+    const { workflowId: rawWorkflowId } = await params;
+
+    // Validate workflowId format
+    const parsedId = uuidSchema.safeParse(rawWorkflowId);
+    if (!parsedId.success) {
+      return NextResponse.json(
+        { error: "Invalid workflowId: must be a valid UUID" },
+        { status: 400 }
+      );
+    }
+    const workflowId = parsedId.data;
+
+    // Enforce max payload size using Content-Length header as a fast-path check
+    const contentLength = req.headers.get("content-length");
+    if (contentLength && parseInt(contentLength, 10) > MAX_PAYLOAD_BYTES) {
+      return NextResponse.json(
+        { error: "Payload too large (max 1 MB)" },
+        { status: 413 }
+      );
+    }
 
     const workflow = await db.workflows.findUnique({
       where: { id: workflowId },
@@ -24,12 +50,20 @@ export async function POST(
       return NextResponse.json({ error: "Workflow is not published" }, { status: 400 });
     }
 
+    // Read raw body and enforce size limit precisely
+    const bodyText = await req.text().catch(() => "");
+    if (Buffer.byteLength(bodyText, "utf8") > MAX_PAYLOAD_BYTES) {
+      return NextResponse.json(
+        { error: "Payload too large (max 1 MB)" },
+        { status: 413 }
+      );
+    }
+
     let payload: Record<string, unknown> = {};
     try {
-      payload = await req.json();
+      payload = bodyText ? JSON.parse(bodyText) : {};
     } catch {
-      const text = await req.text().catch(() => "");
-      if (text) payload = { raw: text };
+      if (bodyText) payload = { raw: bodyText };
     }
 
     await inngest.send({
@@ -51,7 +85,17 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ workflowId: string }> }
 ) {
-  const { workflowId } = await params;
+  const { workflowId: rawWorkflowId } = await params;
+
+  const parsedId = uuidSchema.safeParse(rawWorkflowId);
+  if (!parsedId.success) {
+    return NextResponse.json(
+      { error: "Invalid workflowId: must be a valid UUID" },
+      { status: 400 }
+    );
+  }
+  const workflowId = parsedId.data;
+
   const workflow = await db.workflows.findUnique({
     where: { id: workflowId },
     select: { id: true, publish: true, name: true },

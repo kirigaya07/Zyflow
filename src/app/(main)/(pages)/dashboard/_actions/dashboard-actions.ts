@@ -44,9 +44,12 @@ export async function getDashboardStats() {
     const workflowIds = user.workflows.map((w) => w.id);
     const totalWorkflows = workflowIds.length;
     const activeAutomations = user.workflows.filter((w) => w.publish).length;
+    const unpublishedWorkflows = totalWorkflows - activeAutomations;
     const meetingsProcessed = user.workflows.filter((w) => w.zoomMeetingId).length;
 
-    const [successCount, failedCount, totalRuns] = await Promise.all([
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    const [successCount, failedCount, totalRuns, last30DaysRuns] = await Promise.all([
       workflowIds.length
         ? db.executionLog.count({ where: { workflowId: { in: workflowIds }, status: "success" } })
         : Promise.resolve(0),
@@ -56,7 +59,36 @@ export async function getDashboardStats() {
       workflowIds.length
         ? db.executionLog.count({ where: { workflowId: { in: workflowIds } } })
         : Promise.resolve(0),
+      workflowIds.length
+        ? db.executionLog.count({
+            where: { workflowId: { in: workflowIds }, createdAt: { gte: thirtyDaysAgo } },
+          })
+        : Promise.resolve(0),
     ]);
+
+    // Find the most active workflow (most execution logs)
+    let mostActiveWorkflow: string | null = null;
+    if (workflowIds.length) {
+      const runCounts = await db.executionLog.groupBy({
+        by: ["workflowId"],
+        where: { workflowId: { in: workflowIds } },
+        _count: { id: true },
+        orderBy: { _count: { id: "desc" } },
+        take: 1,
+      });
+      if (runCounts.length > 0) {
+        const topId = runCounts[0].workflowId;
+        const topWorkflow = user.workflows.find((w) => w.id === topId);
+        // Fetch the name from DB since we only selected id/publish/zoomMeetingId above
+        if (topWorkflow) {
+          const wf = await db.workflows.findUnique({
+            where: { id: topId },
+            select: { name: true },
+          });
+          mostActiveWorkflow = wf?.name ?? null;
+        }
+      }
+    }
 
     const successRate =
       totalRuns > 0 ? Math.round((successCount / totalRuns) * 100 * 10) / 10 : 0;
@@ -66,13 +98,16 @@ export async function getDashboardStats() {
     return {
       totalWorkflows,
       activeAutomations,
+      unpublishedWorkflows,
       meetingsProcessed,
       totalRuns,
       successCount,
       failedCount,
+      last30DaysRuns,
       totalSavings,
       successRate,
       monthlyCost,
+      mostActiveWorkflow,
       googleDriveConnected: !!user.localGoogleId,
       discordConnected: user.DiscordWebhook.length > 0,
       notionConnected: user.Notion.length > 0,
