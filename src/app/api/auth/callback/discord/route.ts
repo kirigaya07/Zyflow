@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     if (!code) {
       console.error("No authorization code received");
       return NextResponse.redirect(
-        "${process.env.NEXT_PUBLIC_APP_URL}/connections?error=no_code"
+        `${process.env.NEXT_PUBLIC_APP_URL}/connections?error=no_code`
       );
     }
 
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
     data.append("grant_type", "authorization_code");
     data.append(
       "redirect_uri",
-      "${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback/discord"
+      `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback/discord`
     );
     data.append("code", code.toString());
 
@@ -200,23 +200,23 @@ export async function GET(req: NextRequest) {
         }
       } else {
         return NextResponse.redirect(
-          "${process.env.NEXT_PUBLIC_APP_URL}/connections?error=no_guilds"
+          `${process.env.NEXT_PUBLIC_APP_URL}/connections?error=no_guilds`
         );
       }
     } else {
       return NextResponse.redirect(
-        "${process.env.NEXT_PUBLIC_APP_URL}/connections?error=no_token"
+        `${process.env.NEXT_PUBLIC_APP_URL}/connections?error=no_token`
       );
     }
 
     // This should never be reached, but just in case
     return NextResponse.redirect(
-      "${process.env.NEXT_PUBLIC_APP_URL}/connections?error=unknown"
+      `${process.env.NEXT_PUBLIC_APP_URL}/connections?error=unknown`
     );
   } catch (error) {
     console.error("Discord OAuth error:", error);
     return NextResponse.redirect(
-      "${process.env.NEXT_PUBLIC_APP_URL}/connections?error=oauth_failed"
+      `${process.env.NEXT_PUBLIC_APP_URL}/connections?error=oauth_failed`
     );
   }
 }

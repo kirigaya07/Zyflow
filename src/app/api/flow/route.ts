@@ -163,7 +163,7 @@ export async function GET(req: NextRequest) {
       }
 
       if (step === "Notion") {
-        if (workflow.notionTemplate && workflow.notionDbId && workflow.notionAccessToken) {
+        if (workflow.notionTemplate && workflow.notionAccessToken) {
           try {
             const notionData = JSON.parse(workflow.notionTemplate);
             const fileName = typeof notionData === "string" ? notionData : notionData.name || "New Drive File";

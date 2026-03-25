@@ -58,7 +58,6 @@ const Connections = async (props: Props) => {
         workspace_id!,
         workspace_icon!,
         workspace_name!,
-        database_id!,
         user.id
       );
     }

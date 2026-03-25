@@ -42,7 +42,6 @@ export const onNotionConnect = async (
   workspace_id: string,
   workspace_icon: string,
   workspace_name: string,
-  database_id: string,
   id: string
 ) => {
   "use server";
