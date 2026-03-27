@@ -1,10 +1,9 @@
 "use client";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useEditor } from "@/providers/editor-provider";
-import { useNodeConnections } from "@/providers/connections-provider";
-import { useZyflowStore } from "@/store";
 import { EditorCanvasTypes, EditorNodeType } from "@/lib/types";
+import { getConnectedServices } from "../_actions/workflow-connections";
 import EditorCanvasIconHelper from "./editor-canvas-card-icon-helper";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +18,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { X, Copy, Check, Loader2 } from "lucide-react";
+import { X, Copy, Check, Loader2, CheckCircle2 } from "lucide-react";
 import ExecutionLogs from "./execution-logs";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -396,29 +395,43 @@ function CodeConfig({
 function DiscordConfig({
   meta,
   update,
+  autoUrl,
+  autoName,
+  autoGuildName,
 }: {
   meta: Record<string, unknown>;
   update: (updates: Record<string, unknown>) => void;
+  autoUrl?: string | null;
+  autoName?: string;
+  autoGuildName?: string;
 }) {
-  const { nodeConnection } = useNodeConnections();
-  const hasConnected = !!nodeConnection.discordNode.webhookURL;
+  const isAutoFilled = !!(meta.webhookUrl as string) && (meta.webhookUrl as string) === autoUrl;
 
   return (
     <div className="flex flex-col gap-4">
-      {hasConnected && (
-        <div className="flex items-center justify-between rounded-md border px-3 py-2 bg-muted/40">
-          <div>
-            <p className="text-xs font-medium">{nodeConnection.discordNode.webhookName || "Discord"}</p>
-            <p className="text-[11px] text-muted-foreground">{nodeConnection.discordNode.guildName}</p>
+      {autoUrl && (
+        <div className={cn(
+          "flex items-center gap-2 rounded-md border px-3 py-2",
+          isAutoFilled ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900" : "bg-muted/40"
+        )}>
+          {isAutoFilled
+            ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+            : null
+          }
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium truncate">{autoName || "Discord"}</p>
+            {autoGuildName && <p className="text-[11px] text-muted-foreground truncate">{autoGuildName}</p>}
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs"
-            onClick={() => update({ webhookUrl: nodeConnection.discordNode.webhookURL })}
-          >
-            Use this
-          </Button>
+          {!isAutoFilled && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs shrink-0"
+              onClick={() => update({ webhookUrl: autoUrl })}
+            >
+              Use this
+            </Button>
+          )}
         </div>
       )}
 
@@ -450,35 +463,38 @@ function DiscordConfig({
 function SlackConfig({
   meta,
   update,
+  autoToken,
+  autoTeamName,
 }: {
   meta: Record<string, unknown>;
   update: (updates: Record<string, unknown>) => void;
+  autoToken?: string | null;
+  autoTeamName?: string;
 }) {
-  const { nodeConnection } = useNodeConnections();
-  const { selectedSlackChannels } = useZyflowStore();
-  const hasConnected = !!nodeConnection.slackNode.slackAccessToken;
+  const isAutoFilled = !!(meta.slackAccessToken as string) && (meta.slackAccessToken as string) === autoToken;
 
   return (
     <div className="flex flex-col gap-4">
-      {hasConnected && (
-        <div className="flex items-center justify-between rounded-md border px-3 py-2 bg-muted/40">
-          <div>
-            <p className="text-xs font-medium">{nodeConnection.slackNode.teamName || "Slack"}</p>
+      {autoToken && (
+        <div className={cn(
+          "flex items-center gap-2 rounded-md border px-3 py-2",
+          isAutoFilled ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900" : "bg-muted/40"
+        )}>
+          {isAutoFilled && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />}
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium truncate">{autoTeamName || "Slack"}</p>
             <p className="text-[11px] text-muted-foreground">Connected workspace</p>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs"
-            onClick={() =>
-              update({
-                slackAccessToken: nodeConnection.slackNode.slackAccessToken,
-                channels: selectedSlackChannels,
-              })
-            }
-          >
-            Use this
-          </Button>
+          {!isAutoFilled && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs shrink-0"
+              onClick={() => update({ slackAccessToken: autoToken })}
+            >
+              Use this
+            </Button>
+          )}
         </div>
       )}
 
@@ -534,33 +550,38 @@ function SlackConfig({
 function NotionConfig({
   meta,
   update,
+  autoToken,
+  autoWorkspaceName,
 }: {
   meta: Record<string, unknown>;
   update: (updates: Record<string, unknown>) => void;
+  autoToken?: string | null;
+  autoWorkspaceName?: string;
 }) {
-  const { nodeConnection } = useNodeConnections();
-  const hasConnected = !!nodeConnection.notionNode.accessToken;
+  const isAutoFilled = !!(meta.accessToken as string) && (meta.accessToken as string) === autoToken;
 
   return (
     <div className="flex flex-col gap-4">
-      {hasConnected && (
-        <div className="flex items-center justify-between rounded-md border px-3 py-2 bg-muted/40">
-          <div>
-            <p className="text-xs font-medium">{nodeConnection.notionNode.workspaceName || "Notion"}</p>
+      {autoToken && (
+        <div className={cn(
+          "flex items-center gap-2 rounded-md border px-3 py-2",
+          isAutoFilled ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900" : "bg-muted/40"
+        )}>
+          {isAutoFilled && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />}
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium truncate">{autoWorkspaceName || "Notion"}</p>
             <p className="text-[11px] text-muted-foreground">Connected workspace</p>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs"
-            onClick={() =>
-              update({
-                accessToken: nodeConnection.notionNode.accessToken,
-              })
-            }
-          >
-            Use this
-          </Button>
+          {!isAutoFilled && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs shrink-0"
+              onClick={() => update({ accessToken: autoToken })}
+            >
+              Use this
+            </Button>
+          )}
         </div>
       )}
 
@@ -805,6 +826,9 @@ function GoogleDriveConfig() {
 /* ─────────────────────────────────────────────────────────
    Main panel dispatcher
 ───────────────────────────────────────────────────────── */
+
+type ConnectedServices = Awaited<ReturnType<typeof getConnectedServices>>;
+
 function NodeConfigForms({
   node,
   workflowId,
@@ -813,6 +837,8 @@ function NodeConfigForms({
   workflowId: string;
 }) {
   const { state, dispatch } = useEditor();
+  const [services, setServices] = useState<ConnectedServices>(null);
+  const fetchedRef = useRef(false);
 
   const meta = (node.data.metadata ?? {}) as Record<string, unknown>;
 
@@ -828,6 +854,29 @@ function NodeConfigForms({
     [state, dispatch, node.id]
   );
 
+  // Fetch connected services once for this panel session
+  useEffect(() => {
+    if (fetchedRef.current) return;
+    const nodeType = node.data.type as EditorCanvasTypes;
+    if (!["Slack", "Notion", "Discord"].includes(nodeType)) return;
+    fetchedRef.current = true;
+    getConnectedServices().then((result) => {
+      setServices(result);
+      if (!result) return;
+      // Auto-populate token if field is currently empty
+      if (nodeType === "Slack" && result.slack && !meta.slackAccessToken) {
+        updateNodeMetadata({ slackAccessToken: result.slack.token });
+      }
+      if (nodeType === "Notion" && result.notion && !meta.accessToken) {
+        updateNodeMetadata({ accessToken: result.notion.token });
+      }
+      if (nodeType === "Discord" && result.discord && !meta.webhookUrl) {
+        updateNodeMetadata({ webhookUrl: result.discord.url });
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [node.id, node.data.type]);
+
   switch (node.data.type as EditorCanvasTypes) {
     case "Webhook Trigger":
       return <WebhookTriggerConfig workflowId={workflowId} />;
@@ -842,11 +891,33 @@ function NodeConfigForms({
     case "Code":
       return <CodeConfig meta={meta} update={updateNodeMetadata} />;
     case "Discord":
-      return <DiscordConfig meta={meta} update={updateNodeMetadata} />;
+      return (
+        <DiscordConfig
+          meta={meta}
+          update={updateNodeMetadata}
+          autoUrl={services?.discord?.url}
+          autoName={services?.discord?.name}
+          autoGuildName={services?.discord?.guildName}
+        />
+      );
     case "Slack":
-      return <SlackConfig meta={meta} update={updateNodeMetadata} />;
+      return (
+        <SlackConfig
+          meta={meta}
+          update={updateNodeMetadata}
+          autoToken={services?.slack?.token}
+          autoTeamName={services?.slack?.teamName}
+        />
+      );
     case "Notion":
-      return <NotionConfig meta={meta} update={updateNodeMetadata} />;
+      return (
+        <NotionConfig
+          meta={meta}
+          update={updateNodeMetadata}
+          autoToken={services?.notion?.token}
+          autoWorkspaceName={services?.notion?.workspaceName}
+        />
+      );
     case "Email":
       return <EmailConfig meta={meta} update={updateNodeMetadata} />;
     case "Set Fields":
