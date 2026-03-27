@@ -138,6 +138,20 @@ const EditorCanvas = () => {
   const [showMiniMap, setShowMiniMap] = useState(true);
   const [reactFlowInstance, setReactFlowInstance] =
     useState<ReactFlowInstance<EditorNodeType, Edge>>();
+
+  /** Replace the entire canvas with AI-generated nodes + edges, then fit view */
+  const handleLoadWorkflow = useCallback(
+    (newNodes: EditorNodeType[], newEdges: { id: string; source: string; target: string }[]) => {
+      // @ts-ignore — xyflow generic mismatch is safe here
+      setNodes(newNodes);
+      setEdges(newEdges);
+      // Fit view after React has re-rendered the new nodes
+      setTimeout(() => {
+        reactFlowInstance?.fitView({ padding: 0.2, duration: 400 });
+      }, 100);
+    },
+    [reactFlowInstance]
+  );
   const pathname = usePathname();
   const workflowId = pathname.split("/").pop()!;
 
@@ -341,6 +355,7 @@ const EditorCanvas = () => {
         nodes={nodes}
         edges={edges}
         onToggleLibrary={() => setIsLibraryOpen((v) => !v)}
+        onLoadWorkflow={handleLoadWorkflow}
       />
 
       {/* ── Main content area ─────────────────────────────── */}

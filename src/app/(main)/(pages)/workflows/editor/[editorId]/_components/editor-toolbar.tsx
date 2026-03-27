@@ -22,12 +22,14 @@ import {
 import { onFlowPublish } from "../../../_actions/workflow-connections";
 import { cn } from "@/lib/utils";
 import { EditorNodeType } from "@/lib/types";
+import { AiWorkflowBuilder } from "./ai-workflow-builder";
 
 type FlowEdge = { id: string; source: string; target: string };
 type Props = {
   nodes: EditorNodeType[];
   edges: FlowEdge[];
   onToggleLibrary?: () => void;
+  onLoadWorkflow?: (nodes: EditorNodeType[], edges: FlowEdge[]) => void;
 };
 
 /** Kahn's BFS topological sort — returns ordered node IDs. */
@@ -52,7 +54,7 @@ function topologicalSort(nodes: EditorNodeType[], edges: FlowEdge[]): string[] {
   return sorted;
 }
 
-export function EditorToolbar({ nodes, edges, onToggleLibrary }: Props) {
+export function EditorToolbar({ nodes, edges, onToggleLibrary, onLoadWorkflow }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const { dispatch } = useEditor();
@@ -182,6 +184,11 @@ export function EditorToolbar({ nodes, edges, onToggleLibrary }: Props) {
         </Button>
         <div className="w-px h-4 bg-border mx-1" />
       </div>
+
+      {/* AI Workflow Builder */}
+      {onLoadWorkflow && (
+        <AiWorkflowBuilder onLoad={onLoadWorkflow} />
+      )}
 
       {/* Save */}
       <Button

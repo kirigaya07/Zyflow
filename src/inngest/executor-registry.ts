@@ -26,4 +26,4 @@ export const executorRegistry: Record<string, NodeExecutor> = {
 };
 
 /** Node types that are handled specially by the engine (not via executorRegistry) */
-export const SPECIAL_NODES = new Set(["Wait", "Google Drive", "Trigger", "Webhook Trigger"]);
+export const SPECIAL_NODES = new Set(["Wait", "Google Drive", "Trigger", "Webhook Trigger", "Cron Trigger"]);
