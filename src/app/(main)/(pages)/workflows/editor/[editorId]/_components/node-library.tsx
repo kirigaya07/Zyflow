@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 type Category = { label: string; types: EditorCanvasTypes[] };
 
 const CATEGORIES: Category[] = [
-  { label: "Triggers", types: ["Webhook Trigger", "Google Drive"] },
+  { label: "Triggers", types: ["Webhook Trigger", "Cron Trigger", "Google Drive"] },
   { label: "Core",     types: ["HTTP Request", "Set Fields", "Code", "Condition", "Wait", "AI"] },
   { label: "Apps",     types: ["Discord", "Slack", "Notion", "Email"] },
 ];
@@ -20,6 +20,7 @@ const CATEGORIES: Category[] = [
 /** Left-border accent color per type — consistent with node card */
 const ICON_COLOR: Partial<Record<EditorCanvasTypes, string>> = {
   "Webhook Trigger": "text-amber-500",
+  "Cron Trigger":    "text-sky-500",
   "Google Drive":    "text-orange-500",
   "HTTP Request":    "text-blue-500",
   "Set Fields":      "text-teal-500",
@@ -45,7 +46,11 @@ export function NodeLibrary({ nodes, isOpen, onClose, onAddNode }: Props) {
   const q = query.toLowerCase().trim();
 
   const hasTrigger = nodes.some(
-    (n) => n.type === "Trigger" || n.type === "Webhook Trigger" || n.type === "Google Drive"
+    (n) =>
+      n.type === "Trigger" ||
+      n.type === "Webhook Trigger" ||
+      n.type === "Google Drive" ||
+      n.type === "Cron Trigger"
   );
 
   return (

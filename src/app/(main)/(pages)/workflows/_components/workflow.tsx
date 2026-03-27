@@ -19,6 +19,7 @@ import {
   Trash2,
   ArrowRight,
   Pencil,
+  History,
 } from "lucide-react";
 import {
   onFlowPublish,
@@ -188,6 +189,10 @@ const Workflow = ({ description, id, name, publish, lastRun, runCount = 0, nodeT
             <DropdownMenuItem onClick={() => router.push(`/workflows/editor/${id}`)}>
               <Pencil className="mr-2 h-3.5 w-3.5" />
               Open Editor
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push(`/workflows/${id}/runs`)}>
+              <History className="mr-2 h-3.5 w-3.5" />
+              View Runs
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onDuplicate}>
               <Copy className="mr-2 h-3.5 w-3.5" />

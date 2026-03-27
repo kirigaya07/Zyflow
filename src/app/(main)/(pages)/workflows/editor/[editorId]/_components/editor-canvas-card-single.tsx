@@ -3,10 +3,11 @@
 import { EditorCanvasCardType, EditorCanvasTypes } from "@/lib/types";
 import { useEditor } from "@/providers/editor-provider";
 import React from "react";
-import { Position, useNodeId } from "@xyflow/react";
+import { NodeToolbar, Position, useNodeId } from "@xyflow/react";
 import EditorCanvasIconHelper from "./editor-canvas-card-icon-helper";
 import CustomHandle from "./custom-handle";
 import { cn } from "@/lib/utils";
+import { Copy } from "lucide-react";
 
 /** Left-border accent per node type */
 const ACCENT_BORDER: Partial<Record<EditorCanvasTypes, string>> = {
@@ -57,10 +58,27 @@ const EditorCanvasCardSingle = ({ data }: { data: EditorCanvasCardType }) => {
   const isTrigger =
     data.type === "Trigger" ||
     data.type === "Webhook Trigger" ||
-    data.type === "Google Drive";
+    data.type === "Google Drive" ||
+    data.type === "Cron Trigger";
 
   return (
     <>
+      <NodeToolbar isVisible={isSelected} position={Position.Top} className="flex gap-1 items-center">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            window.dispatchEvent(
+              new CustomEvent("zyflow:duplicate-node", { detail: { nodeId } })
+            );
+          }}
+          className="h-6 px-2 flex items-center gap-1 rounded bg-card border border-border shadow-sm hover:bg-secondary text-muted-foreground hover:text-foreground text-[10px] font-medium transition-colors"
+          title="Duplicate node"
+        >
+          <Copy className="h-3 w-3" />
+          Duplicate
+        </button>
+      </NodeToolbar>
+
       {!isTrigger && (
         <CustomHandle type="target" position={Position.Top} style={{ zIndex: 100 }} />
       )}

@@ -5,11 +5,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   ChevronLeft,
+  Download,
   LayoutGrid,
   Loader2,
   Redo2,
   Save,
   Undo2,
+  Upload,
   Zap,
   ZapOff,
 } from "lucide-react";
@@ -23,6 +25,7 @@ import { onFlowPublish } from "../../../_actions/workflow-connections";
 import { cn } from "@/lib/utils";
 import { EditorNodeType } from "@/lib/types";
 import { AiWorkflowBuilder } from "./ai-workflow-builder";
+import { TestRunDialog } from "./test-run-dialog";
 
 type FlowEdge = { id: string; source: string; target: string };
 type Props = {
@@ -95,6 +98,44 @@ export function EditorToolbar({ nodes, edges, onToggleLibrary, onLoadWorkflow }:
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleExport = () => {
+    const data = JSON.stringify({ nodes, edges }, null, 2);
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${workflowName || "workflow"}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Workflow exported");
+  };
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target?.result as string) as {
+          nodes?: unknown[];
+          edges?: unknown[];
+        };
+        if (Array.isArray(data.nodes) && Array.isArray(data.edges)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          onLoadWorkflow?.(data.nodes as any, data.edges as any);
+          toast.success("Workflow imported");
+        } else {
+          toast.error("Invalid workflow file — missing nodes or edges");
+        }
+      } catch {
+        toast.error("Could not parse file — must be valid JSON");
+      }
+    };
+    reader.readAsText(file);
+    // reset so same file can be re-imported
+    e.target.value = "";
   };
 
   const handleToggleDeploy = async () => {
@@ -184,6 +225,34 @@ export function EditorToolbar({ nodes, edges, onToggleLibrary, onLoadWorkflow }:
         </Button>
         <div className="w-px h-4 bg-border mx-1" />
       </div>
+
+      {/* Export / Import */}
+      <div className="hidden sm:flex items-center gap-0.5">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+          onClick={handleExport}
+          title="Export workflow JSON"
+        >
+          <Download className="h-3.5 w-3.5" />
+        </Button>
+        <label title="Import workflow JSON">
+          <input
+            type="file"
+            accept=".json,application/json"
+            className="sr-only"
+            onChange={handleImport}
+          />
+          <span className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer transition-colors">
+            <Upload className="h-3.5 w-3.5" />
+          </span>
+        </label>
+        <div className="w-px h-4 bg-border mx-1" />
+      </div>
+
+      {/* Test Run */}
+      <TestRunDialog workflowId={workflowId} isPublished={isPublished} />
 
       {/* AI Workflow Builder */}
       {onLoadWorkflow && (

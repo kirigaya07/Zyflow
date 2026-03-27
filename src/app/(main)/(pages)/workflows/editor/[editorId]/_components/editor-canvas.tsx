@@ -182,6 +182,29 @@ const EditorCanvas = () => {
     load();
   }, [workflowId]);
 
+  /** Listen for duplicate-node events fired by node toolbars. */
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { nodeId } = (e as CustomEvent<{ nodeId: string }>).detail;
+      // @ts-ignore — xyflow generic mismatch is safe here
+      setNodes((nds) => {
+        const orig = nds.find((n: EditorNodeType) => n.id === nodeId);
+        if (!orig) return nds;
+        return [
+          ...nds,
+          {
+            ...orig,
+            id: v4(),
+            position: { x: orig.position.x + 40, y: orig.position.y + 40 },
+            selected: false,
+          },
+        ];
+      });
+    };
+    window.addEventListener("zyflow:duplicate-node", handler);
+    return () => window.removeEventListener("zyflow:duplicate-node", handler);
+  }, []);
+
   /** Ctrl/Cmd+S to save */
   useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
