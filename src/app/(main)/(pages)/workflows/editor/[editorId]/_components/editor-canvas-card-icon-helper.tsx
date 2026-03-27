@@ -58,8 +58,6 @@ const EditorCanvasIconHelper = ({ type, size = 20 }: Props) => {
       return <Code2 {...props} />;
     case "Discord":
       return <MessageSquare {...props} />;
-    case "Zoom":
-      return <MessageSquare {...props} />;
     case "Set Fields":
       return <Pencil {...props} />;
     default:

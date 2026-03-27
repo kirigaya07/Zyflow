@@ -36,8 +36,7 @@ export type ConnectionTypes =
   | "Notion"
   | "Slack"
   | "Discord"
-  | "Email"
-  | "Zoom";
+  | "Email";
 
 /**
  * Connection configuration interface for service integrations.
@@ -66,7 +65,6 @@ export type Connection = {
  */
 export type EditorCanvasTypes =
   | "Email"
-  | "Zoom"
   | "Condition"
   | "AI"
   | "Slack"
@@ -170,5 +168,4 @@ export const nodeMapper: Record<string, string> = {
   Discord: "discordNode",
   "Google Drive": "googleNode",
   Email: "emailNode",
-  Zoom: "zoomNode",
 };

@@ -130,8 +130,6 @@ export const onCreateNodeTemplate = async (
   notionDbId?: string,
   emailRecipients?: Option[],
   emailSubject?: string,
-  zoomMeetingId?: string,
-  zoomMeetingTitle?: string
 ) => {
   if (type === "Discord") {
     const response = await db.workflows.update({
@@ -218,22 +216,6 @@ export const onCreateNodeTemplate = async (
     }
   }
 
-  if (type === "Zoom") {
-    const response = await db.workflows.update({
-      where: {
-        id: workflowId,
-      },
-      data: {
-        zoomMeetingId: zoomMeetingId,
-        zoomMeetingTitle: zoomMeetingTitle,
-        zoomSummary: content,
-      },
-    });
-
-    if (response) {
-      return "Zoom template saved";
-    }
-  }
 };
 
 /**

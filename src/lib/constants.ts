@@ -40,7 +40,6 @@ export const products = [
   { title: "Wait & Schedule",       link: "/sign-up", thumbnail: "/p4.png" },
   { title: "Set Fields Node",       link: "/sign-up", thumbnail: "/p5.png" },
   { title: "Multi-step Pipeline",   link: "/sign-up", thumbnail: "/p6.png" },
-  { title: "Zoom → AI Summary",     link: "/sign-up", thumbnail: "/p1.png" },
   { title: "Slack Broadcaster",     link: "/sign-up", thumbnail: "/p2.png" },
   { title: "Google Drive Watcher",  link: "/sign-up", thumbnail: "/p3.png" },
 ];
@@ -71,10 +70,6 @@ export const menuOptions = [
  */
 export const EditorCanvasDefaultCardTypes = {
   Email: { description: "Send and email to a user", type: "Action" },
-  Zoom: {
-    description: "Generate meeting summary and save to Drive",
-    type: "Action",
-  },
   Condition: {
     description: "Boolean operator that creates different conditions lanes.",
     type: "Action",
@@ -188,12 +183,5 @@ export const CONNECTIONS: Connection[] = [
     image: "/gmail.png",
     connectionKey: "emailNode",
     accessTokenKey: "emailRecipients",
-  },
-  {
-    title: "Zoom",
-    description: "Generate meeting summaries and save to Drive.",
-    image: "/zoom.png",
-    connectionKey: "zoomNode",
-    accessTokenKey: "meetingId",
   },
 ];

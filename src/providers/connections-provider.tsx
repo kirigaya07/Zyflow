@@ -35,22 +35,12 @@ export type ConnectionProviderProps = {
   };
   /** Function to update email node configuration */
   setEmailNode: React.Dispatch<React.SetStateAction<any>>;
-  /** Zoom meeting integration data and transcription */
-  zoomNode: {
-    meetingId: string;
-    meetingTitle: string;
-    transcript: string;
-    summary: string;
-  };
-  /** Function to update Zoom node configuration */
-  setZoomNode: React.Dispatch<React.SetStateAction<any>>;
   /** Workflow template configuration for different services */
   workflowTemplate: {
     discord?: string;
     notion?: string;
     slack?: string;
     email?: string;
-    zoom?: string;
   };
   /** Function to update Notion node configuration */
   setNotionNode: React.Dispatch<React.SetStateAction<any>>;
@@ -74,7 +64,6 @@ export type ConnectionProviderProps = {
       notion?: string;
       slack?: string;
       email?: string;
-      zoom?: string;
     }>
   >;
   /** Loading state indicator for connection operations */
@@ -113,18 +102,11 @@ const InitialValues: ConnectionProviderProps = {
     subject: "",
     content: "",
   },
-  zoomNode: {
-    meetingId: "",
-    meetingTitle: "",
-    transcript: "",
-    summary: "",
-  },
   workflowTemplate: {
     discord: "",
     notion: "",
     slack: "",
     email: "",
-    zoom: "",
   },
   slackNode: {
     appId: "",
@@ -141,7 +123,6 @@ const InitialValues: ConnectionProviderProps = {
   setDiscordNode: () => undefined,
   setNotionNode: () => undefined,
   setEmailNode: () => undefined,
-  setZoomNode: () => undefined,
   setSlackNode: () => undefined,
   setIsLoading: () => undefined,
   setWorkFlowTemplate: () => undefined,
@@ -172,7 +153,6 @@ export const ConnectionsProvider = ({ children }: ConnectionWithChildProps) => {
   const [googleNode, setGoogleNode] = useState(InitialValues.googleNode);
   const [notionNode, setNotionNode] = useState(InitialValues.notionNode);
   const [emailNode, setEmailNode] = useState(InitialValues.emailNode);
-  const [zoomNode, setZoomNode] = useState(InitialValues.zoomNode);
   const [slackNode, setSlackNode] = useState(InitialValues.slackNode);
   const [isLoading, setIsLoading] = useState(InitialValues.isLoading);
   const [workflowTemplate, setWorkFlowTemplate] = useState(
@@ -188,8 +168,6 @@ export const ConnectionsProvider = ({ children }: ConnectionWithChildProps) => {
     setNotionNode,
     emailNode,
     setEmailNode,
-    zoomNode,
-    setZoomNode,
     slackNode,
     setSlackNode,
     isLoading,

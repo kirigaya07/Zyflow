@@ -10,7 +10,7 @@ export type ZyflowEvents = {
   "workflow/trigger": {
     data: {
       workflowId: string;
-      source: "drive" | "zoom" | "webhook" | "cron";
+      source: "drive" | "webhook" | "cron";
       payload?: Record<string, unknown>;
     };
   };

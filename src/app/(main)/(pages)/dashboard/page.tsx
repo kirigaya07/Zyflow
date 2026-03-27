@@ -12,7 +12,6 @@ import {
   Bell,
   Users,
   FileText,
-  Mic,
   ArrowUpRight,
   Circle,
   Plus,
@@ -127,7 +126,6 @@ const DashboardPage = async () => {
     { name: "Discord",      connected: connections.discord,      Icon: Users },
     { name: "Notion",       connected: connections.notion,       Icon: FileText },
     { name: "Email",        connected: connections.email,        Icon: Bell },
-    { name: "Zoom",         connected: connections.zoom,         Icon: Mic },
   ];
 
   return (

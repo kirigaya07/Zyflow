@@ -22,7 +22,6 @@ const ACCENT_BORDER: Partial<Record<EditorCanvasTypes, string>> = {
   Slack:             "border-l-green-500",
   Notion:            "border-l-neutral-400",
   Email:             "border-l-red-400",
-  Zoom:              "border-l-blue-500",
   Trigger:           "border-l-orange-400",
   Action:            "border-l-blue-400",
   "Custom Webhook":  "border-l-zinc-400",
@@ -43,7 +42,6 @@ const ICON_STYLE: Partial<Record<EditorCanvasTypes, string>> = {
   Slack:             "bg-green-50    text-green-600   dark:bg-green-950/40  dark:text-green-400",
   Notion:            "bg-neutral-100 text-neutral-600 dark:bg-neutral-800   dark:text-neutral-400",
   Email:             "bg-red-50      text-red-500     dark:bg-red-950/40    dark:text-red-400",
-  Zoom:              "bg-blue-50     text-blue-600    dark:bg-blue-950/40   dark:text-blue-400",
   Trigger:           "bg-orange-50   text-orange-500  dark:bg-orange-950/40 dark:text-orange-400",
   Action:            "bg-blue-50     text-blue-500    dark:bg-blue-950/40   dark:text-blue-400",
 };

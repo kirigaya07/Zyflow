@@ -26,7 +26,7 @@ import { EditorNodeType } from "@/lib/types";
  * Each template represents a specific automation pattern with predefined nodes and connections.
  */
 type TemplateId =
-  | "zoom-meeting-summary"
+  | "webhook-to-slack-notion"
   | "drive-to-slack"
   | "drive-to-discord"
   | "summary-to-notion"
@@ -39,10 +39,10 @@ type TemplateId =
  */
 const TEMPLATE_META: Record<TemplateId, { name: string; description: string }> =
   {
-    "zoom-meeting-summary": {
-      name: "Zoom → Transcript → AI Summary",
+    "webhook-to-slack-notion": {
+      name: "Webhook → Slack + Notion",
       description:
-        "Watch Zoom folder, transcribe with Whisper, summarize with ChatGPT, save to Drive, notify.",
+        "Receive a webhook, post a Slack message, and create a Notion page — all in one flow.",
     },
     "drive-to-slack": {
       name: "Drive Upload → Slack Notification",
@@ -70,83 +70,30 @@ const TEMPLATE_META: Record<TemplateId, { name: string; description: string }> =
     },
   };
 
-/**
- * Creates nodes and edges for the Zoom Meeting Summary workflow template.
- *
- * This template creates a comprehensive automation that:
- * - Monitors Zoom folder for new recordings
- * - Transcribes audio using Whisper AI
- * - Generates meeting summaries using ChatGPT
- * - Saves results to Google Drive
- * - Sends notifications via Slack
- *
- * @returns Object containing workflow nodes and connecting edges with unique IDs
- */
-function createZoomMeetingSummaryNodes(): {
+function createWebhookToSlackNotionNodes(): {
   nodes: EditorNodeType[];
   edges: any[];
 } {
-  // Generate proper UUIDs for template nodes
   const generateId = () => crypto.randomUUID();
 
   const nodes: EditorNodeType[] = [
     {
       id: generateId(),
-      type: "Zoom",
+      type: "Webhook Trigger",
       position: { x: 100, y: 100 },
       data: {
-        title: "Zoom Meeting",
-        description: "Detect new Zoom recordings",
+        title: "Webhook Trigger",
+        description: "Start a workflow when a POST request is sent to a unique URL.",
         completed: false,
         current: true,
         metadata: {},
-        type: "Zoom",
-      },
-    },
-    {
-      id: generateId(),
-      type: "AI",
-      position: { x: 400, y: 100 },
-      data: {
-        title: "Whisper Transcription",
-        description: "Convert audio to text",
-        completed: false,
-        current: false,
-        metadata: {},
-        type: "AI",
-      },
-    },
-    {
-      id: generateId(),
-      type: "AI",
-      position: { x: 700, y: 100 },
-      data: {
-        title: "ChatGPT Summary",
-        description: "Generate meeting summary",
-        completed: false,
-        current: false,
-        metadata: {},
-        type: "AI",
-      },
-    },
-    {
-      id: generateId(),
-      type: "Google Drive",
-      position: { x: 1000, y: 100 },
-      data: {
-        title: "Google Drive",
-        description:
-          "Connect with Google drive to trigger actions or to create files and folders.",
-        completed: false,
-        current: false,
-        metadata: {},
-        type: "Google Drive",
+        type: "Webhook Trigger",
       },
     },
     {
       id: generateId(),
       type: "Slack",
-      position: { x: 1000, y: 300 },
+      position: { x: 400, y: 50 },
       data: {
         title: "Slack",
         description: "Send a notification to slack",
@@ -156,13 +103,24 @@ function createZoomMeetingSummaryNodes(): {
         type: "Slack",
       },
     },
+    {
+      id: generateId(),
+      type: "Notion",
+      position: { x: 400, y: 250 },
+      data: {
+        title: "Notion",
+        description: "Create entries directly in notion.",
+        completed: false,
+        current: false,
+        metadata: {},
+        type: "Notion",
+      },
+    },
   ];
 
   const edges = [
     { id: generateId(), source: nodes[0].id, target: nodes[1].id },
-    { id: generateId(), source: nodes[1].id, target: nodes[2].id },
-    { id: generateId(), source: nodes[2].id, target: nodes[3].id },
-    { id: generateId(), source: nodes[2].id, target: nodes[4].id },
+    { id: generateId(), source: nodes[0].id, target: nodes[2].id },
   ];
 
   return { nodes, edges };
@@ -445,8 +403,8 @@ export async function useTemplate(templateId: TemplateId) {
 
   // Generate template-specific workflow configuration
   switch (templateId) {
-    case "zoom-meeting-summary":
-      ({ nodes, edges } = createZoomMeetingSummaryNodes());
+    case "webhook-to-slack-notion":
+      ({ nodes, edges } = createWebhookToSlackNotionNodes());
       break;
     case "drive-to-slack":
       ({ nodes, edges } = createDriveToSlackNodes());

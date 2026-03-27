@@ -31,7 +31,7 @@ export async function getDashboardStats() {
     const user = await db.user.findUnique({
       where: { clerkId: userId },
       include: {
-        workflows: { select: { id: true, publish: true, zoomMeetingId: true } },
+        workflows: { select: { id: true, publish: true } },
         connections: { select: { id: true } },
         DiscordWebhook: { select: { id: true } },
         Notion: { select: { id: true } },
@@ -45,7 +45,6 @@ export async function getDashboardStats() {
     const totalWorkflows = workflowIds.length;
     const activeAutomations = user.workflows.filter((w) => w.publish).length;
     const unpublishedWorkflows = totalWorkflows - activeAutomations;
-    const meetingsProcessed = user.workflows.filter((w) => w.zoomMeetingId).length;
 
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
@@ -78,15 +77,11 @@ export async function getDashboardStats() {
       });
       if (runCounts.length > 0) {
         const topId = runCounts[0].workflowId;
-        const topWorkflow = user.workflows.find((w) => w.id === topId);
-        // Fetch the name from DB since we only selected id/publish/zoomMeetingId above
-        if (topWorkflow) {
-          const wf = await db.workflows.findUnique({
-            where: { id: topId },
-            select: { name: true },
-          });
-          mostActiveWorkflow = wf?.name ?? null;
-        }
+        const wf = await db.workflows.findUnique({
+          where: { id: topId },
+          select: { name: true },
+        });
+        mostActiveWorkflow = wf?.name ?? null;
       }
     }
 
@@ -99,7 +94,6 @@ export async function getDashboardStats() {
       totalWorkflows,
       activeAutomations,
       unpublishedWorkflows,
-      meetingsProcessed,
       totalRuns,
       successCount,
       failedCount,
@@ -113,7 +107,6 @@ export async function getDashboardStats() {
       notionConnected: user.Notion.length > 0,
       slackConnected: user.Slack.length > 0,
       emailConnected: true,
-      zoomConnected: true,
     };
   } catch (error) {
     console.error("Error fetching dashboard stats:", error);
@@ -128,7 +121,7 @@ export async function getRecentActivity() {
 
     const workflows = await db.workflows.findMany({
       where: { userId },
-      select: { id: true, name: true, publish: true, zoomMeetingId: true, zoomMeetingTitle: true, zoomSummary: true, zoomTranscript: true },
+      select: { id: true, name: true, publish: true },
     });
 
     const workflowIds = workflows.map((w) => w.id);
@@ -163,23 +156,17 @@ export async function getRecentActivity() {
           time,
           status: log.status,
           workflowId: log.workflowId,
-          hasSummary: !!workflow?.zoomSummary,
-          hasTranscript: !!workflow?.zoomTranscript,
-          isZoomWorkflow: !!workflow?.zoomMeetingId,
         };
       });
     }
 
     return workflows.slice(0, 10).map((workflow) => ({
       id: workflow.id,
-      type: workflow.zoomMeetingId ? "meeting" : "workflow",
-      title: workflow.zoomMeetingTitle || workflow.name,
+      type: "workflow",
+      title: workflow.name,
       time: "No runs yet",
       status: workflow.publish ? "active" : "draft",
       workflowId: workflow.id,
-      hasSummary: !!workflow.zoomSummary,
-      hasTranscript: !!workflow.zoomTranscript,
-      isZoomWorkflow: !!workflow.zoomMeetingId,
     }));
   } catch (error) {
     console.error("Error fetching recent activity:", error);
@@ -207,7 +194,6 @@ export async function getConnectionStatus() {
 
     return {
       googleDrive: true,
-      zoom: true,
       email: true,
       slack: user.Slack.length > 0,
       discord: user.DiscordWebhook.length > 0,
@@ -226,22 +212,15 @@ export async function getAutomationStatus() {
 
     const workflows = await db.workflows.findMany({
       where: { userId },
-      select: { id: true, publish: true, zoomMeetingId: true },
+      select: { id: true, publish: true },
     });
 
     const totalWorkflows = workflows.length;
     const activeWorkflows = workflows.filter((w) => w.publish).length;
-    const zoomWorkflows = workflows.filter((w) => w.zoomMeetingId).length;
-    const zoomMonitoringProgress =
-      totalWorkflows > 0 ? Math.round((zoomWorkflows / totalWorkflows) * 100) : 0;
 
     return {
-      zoomMonitoring: { active: activeWorkflows > 0, progress: zoomMonitoringProgress },
-      whisperTranscription: { enabled: zoomWorkflows > 0, progress: zoomWorkflows > 0 ? 92 : 0 },
-      aiSummaries: { running: zoomWorkflows > 0, progress: zoomWorkflows > 0 ? 78 : 0 },
       totalWorkflows,
       activeWorkflows,
-      zoomWorkflows,
     };
   } catch (error) {
     console.error("Error fetching automation status:", error);

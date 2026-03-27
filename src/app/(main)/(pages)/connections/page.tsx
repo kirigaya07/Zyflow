@@ -85,7 +85,6 @@ const Connections = async (props: Props) => {
       ...connections,
       "Google Drive": true,
       Email: true,
-      Zoom: true,
     };
   };
 

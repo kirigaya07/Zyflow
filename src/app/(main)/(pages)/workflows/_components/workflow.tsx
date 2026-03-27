@@ -57,7 +57,6 @@ const NODE_ACCENT: Partial<Record<EditorCanvasTypes, string>> = {
   Slack:             "text-green-600",
   Notion:            "text-neutral-500",
   Email:             "text-red-500",
-  Zoom:              "text-blue-600",
   Trigger:           "text-orange-500",
 };
 

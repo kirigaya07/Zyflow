@@ -36,7 +36,6 @@ const NODE_TYPES = {
   Action:           EditorCanvasCardSingle,
   Trigger:          EditorCanvasCardSingle,
   Email:            EditorCanvasCardSingle,
-  Zoom:             EditorCanvasCardSingle,
   Condition:        EditorCanvasCardSingle,
   AI:               EditorCanvasCardSingle,
   Slack:            EditorCanvasCardSingle,
