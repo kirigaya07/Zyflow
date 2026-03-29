@@ -172,6 +172,18 @@ const postMessageInSlackChannel = async (
  * @param content - Message content to post
  * @returns Response object with success/failure status
  */
+/**
+ * Removes the Slack connection for the current user.
+ */
+export const disconnectSlack = async () => {
+  const user = await currentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  await db.slack.deleteMany({ where: { userId: user.id } });
+  await db.connections.deleteMany({ where: { userId: user.id, type: "Slack" } });
+  return { success: true };
+};
+
 export const postMessageToSlack = async (
   slackAccessToken: string,
   selectedSlackChannels: Option[],

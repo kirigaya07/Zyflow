@@ -82,6 +82,18 @@ export const onNotionConnect = async (
  *
  * @returns Notion connection data (tokens, workspace info) or null if not found
  */
+/**
+ * Removes the Notion connection for the current user.
+ */
+export const disconnectNotion = async () => {
+  const user = await currentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  await db.notion.deleteMany({ where: { userId: user.id } });
+  await db.connections.deleteMany({ where: { userId: user.id, type: "Notion" } });
+  return { success: true };
+};
+
 export const getNotionConnection = async () => {
   const user = await currentUser();
   if (user) {

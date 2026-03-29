@@ -176,6 +176,38 @@ export const getDiscordConnectionUrl = async () => {
  * @param url - Discord webhook URL endpoint
  * @returns Response object with success/failure status and error details
  */
+/**
+ * Connects a Discord webhook manually from a user-supplied URL.
+ * Skips the bot-based OAuth flow — useful when DISCORD_TOKEN is not configured.
+ */
+export const connectDiscordManually = async (params: {
+  webhookId: string;
+  webhookUrl: string;
+  webhookName: string;
+  guildId: string;
+  guildName: string;
+  channelId: string;
+}) => {
+  const user = await currentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { webhookId, webhookUrl, webhookName, guildId, guildName, channelId } = params;
+  await onDiscordConnect(channelId, webhookId, webhookName, webhookUrl, user.id, guildName, guildId);
+  return { success: true };
+};
+
+/**
+ * Removes all Discord webhook connections for the current user.
+ */
+export const disconnectDiscord = async () => {
+  const user = await currentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  await db.discordWebhook.deleteMany({ where: { userId: user.id } });
+  await db.connections.deleteMany({ where: { userId: user.id, type: "Discord" } });
+  return { success: true };
+};
+
 export const postContentToWebHook = async (content: string, url: string) => {
   if (content != "") {
     try {
