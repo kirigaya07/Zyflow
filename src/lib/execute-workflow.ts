@@ -58,7 +58,7 @@ export async function executeWorkflowDirect(
     data: {
       workflowId,
       status: "running",
-      trigger: { source: "webhook", payload },
+      trigger: { source: "webhook", payload } as object,
     },
   });
 
