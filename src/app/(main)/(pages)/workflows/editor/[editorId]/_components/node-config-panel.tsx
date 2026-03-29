@@ -838,6 +838,7 @@ function NodeConfigForms({
 }) {
   const { state, dispatch } = useEditor();
   const [services, setServices] = useState<ConnectedServices>(null);
+  // Track whether we've already fetched to avoid redundant network calls
   const fetchedRef = useRef(false);
 
   const meta = (node.data.metadata ?? {}) as Record<string, unknown>;
@@ -854,28 +855,32 @@ function NodeConfigForms({
     [state, dispatch, node.id]
   );
 
-  // Fetch connected services once for this panel session
+  // Effect 1: Fetch once — runs whenever we land on a service node for the first time
   useEffect(() => {
     if (fetchedRef.current) return;
     const nodeType = node.data.type as EditorCanvasTypes;
     if (!["Slack", "Notion", "Discord"].includes(nodeType)) return;
     fetchedRef.current = true;
-    getConnectedServices().then((result) => {
-      setServices(result);
-      if (!result) return;
-      // Auto-populate token if field is currently empty
-      if (nodeType === "Slack" && result.slack && !meta.slackAccessToken) {
-        updateNodeMetadata({ slackAccessToken: result.slack.token });
-      }
-      if (nodeType === "Notion" && result.notion && !meta.accessToken) {
-        updateNodeMetadata({ accessToken: result.notion.token });
-      }
-      if (nodeType === "Discord" && result.discord && !meta.webhookUrl) {
-        updateNodeMetadata({ webhookUrl: result.discord.url });
-      }
-    });
+    getConnectedServices().then(setServices);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node.id, node.data.type]);
+
+  // Effect 2: Auto-populate — runs whenever node changes OR services arrive
+  useEffect(() => {
+    if (!services) return;
+    const nodeType = node.data.type as EditorCanvasTypes;
+    const currentMeta = (node.data.metadata ?? {}) as Record<string, unknown>;
+    if (nodeType === "Slack" && services.slack && !currentMeta.slackAccessToken) {
+      updateNodeMetadata({ slackAccessToken: services.slack.token });
+    }
+    if (nodeType === "Notion" && services.notion && !currentMeta.accessToken) {
+      updateNodeMetadata({ accessToken: services.notion.token });
+    }
+    if (nodeType === "Discord" && services.discord && !currentMeta.webhookUrl) {
+      updateNodeMetadata({ webhookUrl: services.discord.url });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [node.id, node.data.type, services]);
 
   switch (node.data.type as EditorCanvasTypes) {
     case "Webhook Trigger":
