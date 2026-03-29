@@ -13,6 +13,7 @@ import {
   MousePointerClickIcon,
   Pencil,
   Slack,
+  Table2,
   Timer,
   Webhook,
   Zap,
@@ -60,6 +61,8 @@ const EditorCanvasIconHelper = ({ type, size = 20 }: Props) => {
       return <MessageSquare {...props} />;
     case "Set Fields":
       return <Pencil {...props} />;
+    case "Google Sheets":
+      return <Table2 {...props} />;
     default:
       return <Zap {...props} />;
   }

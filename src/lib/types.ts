@@ -70,6 +70,7 @@ export type EditorCanvasTypes =
   | "Slack"
   | "Discord"
   | "Google Drive"
+  | "Google Sheets"
   | "Notion"
   | "Custom Webhook"
   | "Google Calendar"

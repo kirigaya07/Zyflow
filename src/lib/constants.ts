@@ -131,6 +131,10 @@ export const EditorCanvasDefaultCardTypes = {
     description: "Run workflow on a schedule (hourly, daily, weekly)",
     type: "Trigger",
   },
+  "Google Sheets": {
+    description: "Read, append, update, find, or clear rows in Google Sheets.",
+    type: "Action",
+  },
 };
 
 /**

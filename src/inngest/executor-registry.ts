@@ -8,6 +8,7 @@ import { ConditionExecutor } from "./executors/condition";
 import { HttpRequestExecutor } from "./executors/http-request";
 import { CodeExecutor } from "./executors/code";
 import { SetFieldsExecutor } from "./executors/set-fields";
+import { GoogleSheetsExecutor } from "./executors/google-sheets";
 
 /**
  * Registry mapping canvas node types to their executors.
@@ -23,6 +24,7 @@ export const executorRegistry: Record<string, NodeExecutor> = {
   "HTTP Request":   new HttpRequestExecutor(),
   Code:             new CodeExecutor(),
   "Set Fields":     new SetFieldsExecutor(),
+  "Google Sheets":  new GoogleSheetsExecutor(),
 };
 
 /** Node types that are handled specially by the engine (not via executorRegistry) */

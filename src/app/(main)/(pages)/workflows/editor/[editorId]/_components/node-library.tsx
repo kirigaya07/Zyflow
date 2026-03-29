@@ -14,7 +14,7 @@ type Category = { label: string; types: EditorCanvasTypes[] };
 const CATEGORIES: Category[] = [
   { label: "Triggers", types: ["Webhook Trigger", "Cron Trigger", "Google Drive"] },
   { label: "Core",     types: ["HTTP Request", "Set Fields", "Code", "Condition", "Wait", "AI"] },
-  { label: "Apps",     types: ["Discord", "Slack", "Notion", "Email"] },
+  { label: "Apps",     types: ["Discord", "Slack", "Notion", "Email", "Google Sheets"] },
 ];
 
 /** Left-border accent color per type — consistent with node card */
@@ -32,6 +32,7 @@ const ICON_COLOR: Partial<Record<EditorCanvasTypes, string>> = {
   Slack:             "text-green-600",
   Notion:            "text-neutral-500",
   Email:             "text-red-500",
+  "Google Sheets":   "text-emerald-500",
 };
 
 type Props = {

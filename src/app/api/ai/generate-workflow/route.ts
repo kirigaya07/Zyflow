@@ -27,6 +27,7 @@ ACTION NODES (one or more, executed in order):
 - "Wait": pause the workflow. metadata: { "duration": "30m"|"1h"|"6h"|"1d" }
 - "Set Fields": transform data. metadata: { "fields": [{ "key": "name", "value": "{{ trigger.field }}" }] }
 - "Code": run custom JavaScript. metadata: { "code": "// return transformed items\nreturn items;" }
+- "Google Sheets": interact with Google Sheets. metadata: { "operation": "append"|"get"|"update"|"find"|"clear"|"delete_row"|"create", "spreadsheetId": "sheet URL or ID", "range": "Sheet1!A:Z", "values": "val1, val2" (for append/update), "searchColumn": "Email" (for find), "searchValue": "{{ trigger.email }}" (for find) }
 
 == EXPRESSION SYNTAX ==
 - {{ trigger.fieldName }} — access data from the trigger payload
@@ -126,7 +127,7 @@ Remember: return ONLY valid JSON with "nodes" and "edges" arrays. Use real UUIDs
     const VALID_TYPES = new Set([
       "Webhook Trigger", "Cron Trigger", "Google Drive", "Trigger",
       "Slack", "Discord", "Email", "Notion", "AI", "HTTP Request",
-      "Condition", "Wait", "Set Fields", "Code",
+      "Condition", "Wait", "Set Fields", "Code", "Google Sheets",
     ]);
 
     const nodes = (parsed.nodes as Record<string, unknown>[]).map((n) => ({

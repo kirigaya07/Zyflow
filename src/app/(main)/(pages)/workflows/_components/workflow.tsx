@@ -57,6 +57,7 @@ const NODE_ACCENT: Partial<Record<EditorCanvasTypes, string>> = {
   Discord:           "text-indigo-500",
   Slack:             "text-green-600",
   Notion:            "text-neutral-500",
+  "Google Sheets":   "text-emerald-500",
   Email:             "text-red-500",
   Trigger:           "text-orange-500",
 };

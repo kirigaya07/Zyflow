@@ -808,6 +808,211 @@ function CronTriggerConfig({
   );
 }
 
+function GoogleSheetsConfig({
+  meta,
+  update,
+}: {
+  meta: Record<string, unknown>;
+  update: (updates: Record<string, unknown>) => void;
+}) {
+  const operation = (meta.operation as string) || "append";
+
+  const OPERATIONS = [
+    { value: "append",     label: "Append Row" },
+    { value: "get",        label: "Get Rows" },
+    { value: "update",     label: "Update Row" },
+    { value: "find",       label: "Find Row" },
+    { value: "clear",      label: "Clear Range" },
+    { value: "delete_row", label: "Delete Row" },
+    { value: "create",     label: "Create Spreadsheet" },
+  ];
+
+  const needsSheet  = operation !== "create";
+  const needsValues = operation === "append" || operation === "update";
+  const needsFind   = operation === "find";
+  const needsRow    = operation === "update" || operation === "delete_row";
+  const isCreate    = operation === "create";
+  const showHeaders = operation === "get" || operation === "find";
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Google account notice */}
+      <div className="rounded-md border px-3 py-2 bg-muted/40">
+        <p className="text-[11px] text-muted-foreground">
+          Uses your connected Google account. Make sure the{" "}
+          <span className="font-medium">Google Sheets API</span> scope is enabled
+          in your Clerk dashboard.
+        </p>
+      </div>
+
+      {/* Operation */}
+      <Section>
+        <Label>Operation</Label>
+        <Select
+          value={operation}
+          onValueChange={(v) => update({ operation: v })}
+        >
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {OPERATIONS.map((op) => (
+              <SelectItem key={op.value} value={op.value}>{op.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Section>
+
+      {/* Create: just a title */}
+      {isCreate && (
+        <Section>
+          <Label>Spreadsheet Title</Label>
+          <Input
+            placeholder="My Spreadsheet"
+            value={(meta.sheetTitle as string) || ""}
+            onChange={(e) => update({ sheetTitle: e.target.value })}
+          />
+        </Section>
+      )}
+
+      {/* All other ops: need sheet ID + range */}
+      {needsSheet && (
+        <>
+          <Section>
+            <Label>Spreadsheet URL or ID</Label>
+            <Input
+              placeholder="https://docs.google.com/spreadsheets/d/… or just the ID"
+              value={(meta.spreadsheetId as string) || ""}
+              onChange={(e) => update({ spreadsheetId: e.target.value })}
+              className="font-mono text-xs"
+            />
+          </Section>
+
+          <Section>
+            <Label>Range</Label>
+            <Input
+              placeholder="Sheet1  or  Sheet1!A:Z"
+              value={(meta.range as string) || ""}
+              onChange={(e) => update({ range: e.target.value })}
+              className="font-mono text-xs"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Omit the range to use the whole sheet (e.g.{" "}
+              <code className="bg-muted px-1 rounded text-[10px]">Sheet1</code>).
+            </p>
+          </Section>
+        </>
+      )}
+
+      {/* Append / Update: row values */}
+      {needsValues && (
+        <Section>
+          <Label>
+            Row Values{" "}
+            <span className="font-normal text-muted-foreground">(CSV or JSON array)</span>
+          </Label>
+          <Input
+            placeholder='value1, value2  or  ["val1","val2"]'
+            value={(meta.values as string) || ""}
+            onChange={(e) => update({ values: e.target.value })}
+            className="font-mono text-xs"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Supports expressions:{" "}
+            <code className="bg-muted px-1 rounded text-[10px]">{"{{ trigger.name }}, {{ trigger.email }}"}</code>
+          </p>
+        </Section>
+      )}
+
+      {/* Update / Delete: specific row number */}
+      {needsRow && (
+        <Section>
+          <Label>Row Number</Label>
+          <Input
+            placeholder="2  (1 = header, 2 = first data row)"
+            value={(meta.rowNumber as string) || ""}
+            onChange={(e) => update({ rowNumber: e.target.value })}
+            className="font-mono text-xs"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Supports expressions:{" "}
+            <code className="bg-muted px-1 rounded text-[10px]">{"{{ trigger.rowNumber }}"}</code>
+          </p>
+        </Section>
+      )}
+
+      {/* Find: column + search value */}
+      {needsFind && (
+        <>
+          <Section>
+            <Label>Search Column</Label>
+            <Input
+              placeholder="Email  or  column header name"
+              value={(meta.searchColumn as string) || ""}
+              onChange={(e) => update({ searchColumn: e.target.value })}
+              className="font-mono text-xs"
+            />
+          </Section>
+          <Section>
+            <Label>Search Value</Label>
+            <Input
+              placeholder={"user@example.com  or  {{ trigger.email }}"}
+              value={(meta.searchValue as string) || ""}
+              onChange={(e) => update({ searchValue: e.target.value })}
+              className="font-mono text-xs"
+            />
+          </Section>
+        </>
+      )}
+
+      {/* Get / Find: headers toggle */}
+      {showHeaders && (
+        <div className="flex items-center justify-between">
+          <Label>First row is header</Label>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={meta.hasHeaders !== false}
+            onClick={() => update({ hasHeaders: meta.hasHeaders === false })}
+            className={cn(
+              "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
+              meta.hasHeaders !== false ? "bg-primary" : "bg-input"
+            )}
+          >
+            <span
+              className={cn(
+                "inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform",
+                meta.hasHeaders !== false ? "translate-x-4" : "translate-x-1"
+              )}
+            />
+          </button>
+        </div>
+      )}
+
+      <ExprHint />
+
+      {operation === "get" && (
+        <p className="text-[11px] text-muted-foreground">
+          Output: each row becomes a separate item with column names as keys.
+          Available via{" "}
+          <code className="bg-muted px-1 rounded text-[10px]">{"{{ nodeId.ColumnName }}"}</code>
+        </p>
+      )}
+      {operation === "find" && (
+        <p className="text-[11px] text-muted-foreground">
+          Returns all matching rows. Each row includes{" "}
+          <code className="bg-muted px-1 rounded text-[10px]">_rowNumber</code> for use in Update or Delete Row.
+        </p>
+      )}
+      {operation === "create" && (
+        <p className="text-[11px] text-muted-foreground">
+          Output includes{" "}
+          <code className="bg-muted px-1 rounded text-[10px]">spreadsheetId</code> and{" "}
+          <code className="bg-muted px-1 rounded text-[10px]">url</code> for use in downstream nodes.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function GoogleDriveConfig() {
   return (
     <div className="flex flex-col gap-3">
@@ -929,6 +1134,8 @@ function NodeConfigForms({
       return <SetFieldsConfig meta={meta} update={updateNodeMetadata} />;
     case "Cron Trigger":
       return <CronTriggerConfig meta={meta} update={updateNodeMetadata} />;
+    case "Google Sheets":
+      return <GoogleSheetsConfig meta={meta} update={updateNodeMetadata} />;
     case "Google Drive":
       return <GoogleDriveConfig />;
     default:
