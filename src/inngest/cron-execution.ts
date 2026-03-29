@@ -1,5 +1,6 @@
 import { inngest } from "./client";
 import { db } from "@/lib/db";
+import { executeWorkflowDirect } from "@/lib/execute-workflow";
 import type { EditorNodeType } from "@/lib/types";
 
 /**
@@ -61,18 +62,14 @@ export const scheduledWorkflowCheck = inngest.createFunction(
       }
     }
 
-    // ── 4. Fan-out: send one workflow/trigger event per matching workflow ──
+    // ── 4. Fan-out: execute each matching workflow directly ────────────────
     if (workflowsToFire.length > 0) {
-      await step.run("send-cron-triggers", async () => {
-        await inngest.send(
-          workflowsToFire.map((workflowId) => ({
-            name: "workflow/trigger" as const,
-            data: {
-              workflowId,
-              source: "cron" as const,
-              payload: { firedAt: now.toISOString(), utcHour, utcWeekday },
-            },
-          }))
+      await step.run("execute-cron-workflows", async () => {
+        const payload = { firedAt: now.toISOString(), utcHour, utcWeekday };
+        await Promise.all(
+          workflowsToFire.map((workflowId) =>
+            executeWorkflowDirect(workflowId, payload)
+          )
         );
       });
     }

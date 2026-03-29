@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { inngest } from "@/inngest/client";
+import { executeWorkflowDirect } from "@/lib/execute-workflow";
 
 /** Max allowed POST body size: 1 MB */
 const MAX_PAYLOAD_BYTES = 1 * 1024 * 1024;
@@ -66,12 +66,16 @@ export async function POST(
       if (bodyText) payload = { raw: bodyText };
     }
 
-    await inngest.send({
-      name: "workflow/trigger",
-      data: { workflowId, source: "webhook", payload },
-    });
+    const result = await executeWorkflowDirect(workflowId, payload);
 
-    return NextResponse.json({ received: true, workflowId });
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.error, runId: result.runId },
+        { status: 422 }
+      );
+    }
+
+    return NextResponse.json({ received: true, workflowId, runId: result.runId });
   } catch (err) {
     console.error("[webhook] POST error:", err);
     return NextResponse.json(

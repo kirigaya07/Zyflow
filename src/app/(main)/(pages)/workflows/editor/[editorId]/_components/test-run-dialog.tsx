@@ -41,12 +41,12 @@ export function TestRunDialog({ workflowId, isPublished }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(parsed),
       });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        toast.success("Test run triggered — check the Executions tab");
+        toast.success("Workflow completed — check the Executions tab");
         setOpen(false);
       } else {
-        const data = await res.json().catch(() => ({}));
-        toast.error((data as { error?: string }).error ?? `Request failed (${res.status})`);
+        toast.error((data as { error?: string }).error ?? `Run failed (${res.status})`);
       }
     } catch {
       toast.error("Failed to reach the webhook endpoint");
@@ -115,7 +115,7 @@ export function TestRunDialog({ workflowId, isPublished }: Props) {
             {isTesting ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Triggering…
+                Running…
               </>
             ) : (
               <>
