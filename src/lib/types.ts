@@ -81,7 +81,8 @@ export type EditorCanvasTypes =
   | "Webhook Trigger"
   | "Code"
   | "Set Fields"
-  | "Cron Trigger";
+  | "Cron Trigger"
+  | "MCP";
 
 /**
  * Interface for editor canvas card/node configuration.

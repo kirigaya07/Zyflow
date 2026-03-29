@@ -135,6 +135,10 @@ export const EditorCanvasDefaultCardTypes = {
     description: "Read, append, update, find, or clear rows in Google Sheets.",
     type: "Action",
   },
+  MCP: {
+    description: "Call any tool on an MCP-compatible server from within your workflow.",
+    type: "Action",
+  },
 };
 
 /**

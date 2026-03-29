@@ -18,6 +18,7 @@
 import ProfileForm from "@/components/forms/profile-form";
 import React from "react";
 import ProfilePicture from "./_components/profile-picture";
+import { McpSettings } from "./_components/mcp-settings";
 import { db } from "@/lib/db";
 import { currentUser } from "@clerk/nextjs/server";
 
@@ -141,6 +142,14 @@ const Settings = async () => {
           onUpload={uploadProfileImage}
         />
         <ProfileForm user={user} onUpdate={updateUserInfo} />
+
+        <div className="border-t border-border pt-8">
+          <h2 className="text-2xl font-bold mb-1">MCP Integration</h2>
+          <p className="text-base text-white/50 mb-6">
+            Connect Claude Desktop (or any MCP client) to your Zyflow workflows
+          </p>
+          <McpSettings />
+        </div>
       </div>
     </div>
   );

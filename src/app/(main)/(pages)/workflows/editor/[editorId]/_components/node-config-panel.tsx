@@ -808,6 +808,69 @@ function CronTriggerConfig({
   );
 }
 
+function McpClientConfig({
+  meta,
+  update,
+}: {
+  meta: Record<string, unknown>;
+  update: (updates: Record<string, unknown>) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-4">
+      <Section>
+        <Label>MCP Server URL</Label>
+        <Input
+          placeholder="https://example.com/api/mcp"
+          value={(meta.serverUrl as string) || ""}
+          onChange={(e) => update({ serverUrl: e.target.value })}
+          className="font-mono text-xs"
+        />
+        <p className="text-[11px] text-muted-foreground">
+          URL of any HTTP-based MCP server (including other Zyflow instances).
+        </p>
+      </Section>
+
+      <Section>
+        <Label>API Key <span className="font-normal text-muted-foreground">(Bearer token)</span></Label>
+        <Input
+          type="password"
+          placeholder="Bearer token for auth (optional)"
+          value={(meta.apiKey as string) || ""}
+          onChange={(e) => update({ apiKey: e.target.value })}
+          className="font-mono text-xs"
+        />
+      </Section>
+
+      <Section>
+        <Label>Tool Name</Label>
+        <Input
+          placeholder="e.g. search_web or a workflow UUID"
+          value={(meta.toolName as string) || ""}
+          onChange={(e) => update({ toolName: e.target.value })}
+          className="font-mono text-xs"
+        />
+      </Section>
+
+      <Section>
+        <Label>Tool Input <span className="font-normal text-muted-foreground">(JSON)</span></Label>
+        <Textarea
+          placeholder={'{\n  "query": "{{ trigger.search }}"\n}'}
+          value={(meta.toolInput as string) || ""}
+          onChange={(e) => update({ toolInput: e.target.value })}
+          className="font-mono text-xs min-h-[100px] resize-none"
+        />
+      </Section>
+
+      <ExprHint />
+      <p className="text-[11px] text-muted-foreground">
+        Output is available as{" "}
+        <code className="bg-muted px-1 rounded text-[10px]">output</code>{" "}
+        in subsequent nodes.
+      </p>
+    </div>
+  );
+}
+
 function GoogleSheetsConfig({
   meta,
   update,
@@ -1136,6 +1199,8 @@ function NodeConfigForms({
       return <CronTriggerConfig meta={meta} update={updateNodeMetadata} />;
     case "Google Sheets":
       return <GoogleSheetsConfig meta={meta} update={updateNodeMetadata} />;
+    case "MCP":
+      return <McpClientConfig meta={meta} update={updateNodeMetadata} />;
     case "Google Drive":
       return <GoogleDriveConfig />;
     default:

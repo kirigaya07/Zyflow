@@ -59,6 +59,7 @@ const NODE_ACCENT: Partial<Record<EditorCanvasTypes, string>> = {
   Notion:            "text-neutral-500",
   "Google Sheets":   "text-emerald-500",
   Email:             "text-red-500",
+  MCP:               "text-pink-500",
   Trigger:           "text-orange-500",
 };
 

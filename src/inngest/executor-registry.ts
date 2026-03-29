@@ -9,6 +9,7 @@ import { HttpRequestExecutor } from "./executors/http-request";
 import { CodeExecutor } from "./executors/code";
 import { SetFieldsExecutor } from "./executors/set-fields";
 import { GoogleSheetsExecutor } from "./executors/google-sheets";
+import { McpClientExecutor } from "./executors/mcp-client";
 
 /**
  * Registry mapping canvas node types to their executors.
@@ -25,6 +26,7 @@ export const executorRegistry: Record<string, NodeExecutor> = {
   Code:             new CodeExecutor(),
   "Set Fields":     new SetFieldsExecutor(),
   "Google Sheets":  new GoogleSheetsExecutor(),
+  MCP:              new McpClientExecutor(),
 };
 
 /** Node types that are handled specially by the engine (not via executorRegistry) */

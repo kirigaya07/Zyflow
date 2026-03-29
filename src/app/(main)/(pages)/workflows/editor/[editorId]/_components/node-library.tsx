@@ -13,7 +13,7 @@ type Category = { label: string; types: EditorCanvasTypes[] };
 
 const CATEGORIES: Category[] = [
   { label: "Triggers", types: ["Webhook Trigger", "Cron Trigger", "Google Drive"] },
-  { label: "Core",     types: ["HTTP Request", "Set Fields", "Code", "Condition", "Wait", "AI"] },
+  { label: "Core",     types: ["HTTP Request", "Set Fields", "Code", "Condition", "Wait", "AI", "MCP"] },
   { label: "Apps",     types: ["Discord", "Slack", "Notion", "Email", "Google Sheets"] },
 ];
 
@@ -33,6 +33,7 @@ const ICON_COLOR: Partial<Record<EditorCanvasTypes, string>> = {
   Notion:            "text-neutral-500",
   Email:             "text-red-500",
   "Google Sheets":   "text-emerald-500",
+  MCP:               "text-pink-500",
 };
 
 type Props = {

@@ -12,6 +12,7 @@ import {
   MessageSquare,
   MousePointerClickIcon,
   Pencil,
+  Plug,
   Slack,
   Table2,
   Timer,
@@ -63,6 +64,8 @@ const EditorCanvasIconHelper = ({ type, size = 20 }: Props) => {
       return <Pencil {...props} />;
     case "Google Sheets":
       return <Table2 {...props} />;
+    case "MCP":
+      return <Plug {...props} />;
     default:
       return <Zap {...props} />;
   }

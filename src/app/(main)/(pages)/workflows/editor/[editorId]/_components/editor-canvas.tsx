@@ -51,6 +51,7 @@ const NODE_TYPES = {
   "Set Fields":     EditorCanvasCardSingle,
   "Cron Trigger":   EditorCanvasCardSingle,
   "Google Sheets":  EditorCanvasCardSingle,
+  MCP:              EditorCanvasCardSingle,
 } as const;
 
 const DEFAULT_EDGE_OPTIONS = {
