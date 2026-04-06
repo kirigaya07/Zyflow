@@ -2,88 +2,81 @@ export const dynamic = "force-dynamic";
 
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { Webhook } from "svix";
+import { headers } from "next/headers";
 
 export async function POST(req: Request) {
-  try {
-    const body = await req.json();
-    console.log("Webhook received:", JSON.stringify(body, null, 2));
-
-    // Validate the payload structure
-    if (!body?.data) {
-      console.error("Invalid webhook payload: missing data");
-      return new NextResponse("Invalid webhook payload: missing data", {
-        status: 400,
-      });
-    }
-
-    const {
-      id,
-      email_addresses,
-      first_name,
-      last_name,
-      image_url,
-      profile_image_url,
-    } = body.data;
-
-    // Validate required fields
-    if (!id) {
-      console.error("Invalid webhook payload: missing user id");
-      return new NextResponse("Invalid webhook payload: missing user id", {
-        status: 400,
-      });
-    }
-
-    // Safely get email address
-    const email = email_addresses?.[0]?.email_address;
-    if (!email) {
-      console.error("Invalid webhook payload: missing email");
-      return new NextResponse("Invalid webhook payload: missing email", {
-        status: 400,
-      });
-    }
-
-    // Combine first and last name
-    const fullName = [first_name, last_name].filter(Boolean).join(" ") || "";
-
-    // Use profile_image_url if available, otherwise fallback to image_url
-    const profileImage = profile_image_url || image_url || "";
-
-    console.log("Processing user:", {
-      clerkId: id,
-      email,
-      name: fullName,
-      profileImage,
-    });
-
-    const user = await db.user.upsert({
-      where: { clerkId: id },
-      update: {
-        email,
-        name: fullName,
-        profileImage,
-      },
-      create: {
-        clerkId: id,
-        email,
-        name: fullName,
-        profileImage,
-        tier: "Free",
-        credits: "10",
-      },
-    });
-
-    console.log("User upserted successfully:", user.id);
-
-    return new NextResponse("User updated in database successfully", {
-      status: 200,
-    });
-  } catch (error) {
-    console.error("Error updating database:", error);
-    return new NextResponse(
-      `Error updating user in database: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`,
-      { status: 500 }
-    );
+  // ── Verify Svix signature ────────────────────────────────────────────────
+  const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
+  if (!WEBHOOK_SECRET) {
+    console.error("CLERK_WEBHOOK_SECRET is not set");
+    return new NextResponse("Webhook secret not configured", { status: 500 });
   }
+
+  const headersList = await headers();
+  const svixId        = headersList.get("svix-id");
+  const svixTimestamp = headersList.get("svix-timestamp");
+  const svixSignature = headersList.get("svix-signature");
+
+  if (!svixId || !svixTimestamp || !svixSignature) {
+    return new NextResponse("Missing svix headers", { status: 400 });
+  }
+
+  const payload = await req.text();
+
+  const wh = new Webhook(WEBHOOK_SECRET);
+  let body: Record<string, unknown>;
+  try {
+    body = wh.verify(payload, {
+      "svix-id":        svixId,
+      "svix-timestamp": svixTimestamp,
+      "svix-signature": svixSignature,
+    }) as Record<string, unknown>;
+  } catch (err) {
+    console.error("Webhook signature verification failed:", err);
+    return new NextResponse("Invalid signature", { status: 401 });
+  }
+
+  // ── Process event ────────────────────────────────────────────────────────
+  const eventType = body.type as string;
+
+  if (eventType === "user.created" || eventType === "user.updated") {
+    const data = body.data as Record<string, unknown>;
+
+    const id = data.id as string;
+    const emailAddresses = data.email_addresses as { email_address: string }[];
+    const email = emailAddresses?.[0]?.email_address;
+
+    if (!id || !email) {
+      return new NextResponse("Missing user id or email", { status: 400 });
+    }
+
+    const firstName  = (data.first_name  as string) || "";
+    const lastName   = (data.last_name   as string) || "";
+    const fullName   = [firstName, lastName].filter(Boolean).join(" ");
+    const profileImage =
+      (data.profile_image_url as string) ||
+      (data.image_url         as string) || "";
+
+    try {
+      const user = await db.user.upsert({
+        where:  { clerkId: id },
+        update: { email, name: fullName, profileImage },
+        create: {
+          clerkId: id,
+          email,
+          name: fullName,
+          profileImage,
+          tier:    "Free",
+          credits: "10",
+        },
+      });
+      console.log(`User ${eventType === "user.created" ? "created" : "updated"}:`, user.id);
+    } catch (err) {
+      console.error("DB error:", err);
+      return new NextResponse("Database error", { status: 500 });
+    }
+  }
+
+  return new NextResponse("OK", { status: 200 });
 }
