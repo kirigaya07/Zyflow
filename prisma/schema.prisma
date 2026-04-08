@@ -83,13 +83,15 @@ model Slack {
 model Notion {
   id            String        @id @default(uuid())
   accessToken   String        @unique
-  workspaceId   String        @unique
-  databaseId    String        @unique
+  workspaceId   String
+  databaseId    String
   workspaceName String
   workspaceIcon String
   User          User          @relation(fields: [userId], references: [clerkId])
   userId        String
   connections   Connections[]
+
+  @@unique([userId, workspaceId])
 }
 
 model Connections {

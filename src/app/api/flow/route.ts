@@ -168,7 +168,7 @@ export async function GET(req: NextRequest) {
             const notionData = JSON.parse(workflow.notionTemplate);
             const fileName = typeof notionData === "string" ? notionData : notionData.name || "New Drive File";
             await withRetry(
-              () => onCreateNewPageInDatabase(safeDecrypt(workflow.notionAccessToken!), fileName),
+              () => onCreateNewPageInDatabase(safeDecrypt(workflow.notionAccessToken!), fileName, workflow.notionDbId || undefined),
               { label: "Notion", maxAttempts: 3 }
             );
             await logStep(workflow.id, "Notion", "success");
