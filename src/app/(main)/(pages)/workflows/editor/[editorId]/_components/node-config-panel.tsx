@@ -597,6 +597,19 @@ function NotionConfig({
       </Section>
 
       <Section>
+        <Label>Database ID <span className="font-normal text-muted-foreground">(optional)</span></Label>
+        <Input
+          placeholder="Paste Notion database ID or URL"
+          value={(meta.databaseId as string) || ""}
+          onChange={(e) => update({ databaseId: e.target.value })}
+          className="font-mono text-xs"
+        />
+        <p className="text-[11px] text-muted-foreground">
+          Leave blank to create a top-level page. Paste the database URL or ID to add a row to a database.
+        </p>
+      </Section>
+
+      <Section>
         <Label>Content / Page Title</Label>
         <Textarea
           placeholder={"New entry: {{ trigger.name }}"}

@@ -75,9 +75,9 @@ export const onDiscordConnect = async (
           url: webhook_url,
           guildName: guild_name,
           connections: {
-            create: {
-              userId: id,
-              type: "Discord",
+            connectOrCreate: {
+              where: { userId_type: { userId: id, type: "Discord" } },
+              create: { userId: id, type: "Discord" },
             },
           },
         },

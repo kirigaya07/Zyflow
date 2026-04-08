@@ -61,7 +61,10 @@ export const onNotionConnect = async (
           workspaceName: workspace_name,
           databaseId: "",
           connections: {
-            create: { userId: id, type: "Notion" },
+            connectOrCreate: {
+              where: { userId_type: { userId: id, type: "Notion" } },
+              create: { userId: id, type: "Notion" },
+            },
           },
         },
       });
@@ -143,30 +146,25 @@ export const getNotionDatabase = async (
  */
 export const onCreateNewPageInDatabase = async (
   accessToken: string,
-  content: string
+  content: string,
+  databaseId?: string
 ) => {
-  const notion = new Client({
-    auth: accessToken,
-  });
+  const notion = new Client({ auth: accessToken });
+
+  const parent = databaseId
+    ? { type: "database_id" as const, database_id: databaseId }
+    : { type: "page_id" as const, page_id: "" };
 
   const response = await notion.pages.create({
-    parent: {
-      type: "workspace",
-      workspace: true,
-    },
+    parent: databaseId
+      ? { type: "database_id", database_id: databaseId }
+      : { type: "workspace", workspace: true },
     properties: {
       title: {
-        title: [
-          {
-            text: {
-              content: content,
-            },
-          },
-        ],
+        title: [{ text: { content } }],
       },
     },
-  });
-  if (response) {
-    return response;
-  }
+  } as Parameters<typeof notion.pages.create>[0]);
+
+  return response ?? null;
 };

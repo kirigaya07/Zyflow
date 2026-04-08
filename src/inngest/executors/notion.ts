@@ -12,6 +12,7 @@ export class NotionExecutor implements NodeExecutor {
     const { metadata } = config;
 
     const rawToken = (metadata.accessToken as string) || ctx.workflow.notionAccessToken;
+    const databaseId = (metadata.databaseId as string) || ctx.workflow.notionDbId || undefined;
 
     const content = interpolate(
       (metadata.content as string) || ctx.workflow.notionTemplate || "New Entry",
@@ -23,8 +24,8 @@ export class NotionExecutor implements NodeExecutor {
       return [{ json: { skipped: true, reason: "No Notion access token configured" } }];
     }
 
-    await onCreateNewPageInDatabase(safeDecrypt(rawToken), content);
+    const page = await onCreateNewPageInDatabase(safeDecrypt(rawToken), content, databaseId || undefined);
 
-    return [{ json: { success: true, content } }];
+    return [{ json: { success: true, content, pageId: page?.id } }];
   }
 }

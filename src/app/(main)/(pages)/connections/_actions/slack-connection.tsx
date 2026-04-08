@@ -69,7 +69,10 @@ export const onSlackConnect = async (
         teamId: team_id,
         teamName: team_name,
         connections: {
-          create: { userId: user_id, type: "Slack" },
+          connectOrCreate: {
+            where: { userId_type: { userId: user_id, type: "Slack" } },
+            create: { userId: user_id, type: "Slack" },
+          },
         },
       },
     });
