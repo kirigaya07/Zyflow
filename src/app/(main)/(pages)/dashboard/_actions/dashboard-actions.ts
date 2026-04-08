@@ -48,27 +48,28 @@ export async function getDashboardStats() {
 
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
+    // Use WorkflowRun for accurate per-run counts (not per-step ExecutionLog)
     const [successCount, failedCount, totalRuns, last30DaysRuns] = await Promise.all([
       workflowIds.length
-        ? db.executionLog.count({ where: { workflowId: { in: workflowIds }, status: "success" } })
+        ? db.workflowRun.count({ where: { workflowId: { in: workflowIds }, status: "completed" } })
         : Promise.resolve(0),
       workflowIds.length
-        ? db.executionLog.count({ where: { workflowId: { in: workflowIds }, status: "failed" } })
+        ? db.workflowRun.count({ where: { workflowId: { in: workflowIds }, status: "failed" } })
         : Promise.resolve(0),
       workflowIds.length
-        ? db.executionLog.count({ where: { workflowId: { in: workflowIds } } })
+        ? db.workflowRun.count({ where: { workflowId: { in: workflowIds } } })
         : Promise.resolve(0),
       workflowIds.length
-        ? db.executionLog.count({
-            where: { workflowId: { in: workflowIds }, createdAt: { gte: thirtyDaysAgo } },
+        ? db.workflowRun.count({
+            where: { workflowId: { in: workflowIds }, startedAt: { gte: thirtyDaysAgo } },
           })
         : Promise.resolve(0),
     ]);
 
-    // Find the most active workflow (most execution logs)
+    // Find the most active workflow (most runs)
     let mostActiveWorkflow: string | null = null;
     if (workflowIds.length) {
-      const runCounts = await db.executionLog.groupBy({
+      const runCounts = await db.workflowRun.groupBy({
         by: ["workflowId"],
         where: { workflowId: { in: workflowIds } },
         _count: { id: true },
@@ -127,19 +128,20 @@ export async function getRecentActivity() {
     const workflowIds = workflows.map((w) => w.id);
     const workflowMap = new Map(workflows.map((w) => [w.id, w]));
 
-    const recentLogs = workflowIds.length
-      ? await db.executionLog.findMany({
+    // Use WorkflowRun for accurate per-run activity (one entry per actual run)
+    const recentRuns = workflowIds.length
+      ? await db.workflowRun.findMany({
           where: { workflowId: { in: workflowIds } },
-          orderBy: { createdAt: "desc" },
+          orderBy: { startedAt: "desc" },
           take: 10,
-          select: { id: true, workflowId: true, step: true, status: true, createdAt: true },
+          select: { id: true, workflowId: true, status: true, startedAt: true },
         })
       : [];
 
-    if (recentLogs.length > 0) {
-      return recentLogs.map((log) => {
-        const workflow = workflowMap.get(log.workflowId);
-        const seconds = Math.floor((Date.now() - new Date(log.createdAt).getTime()) / 1000);
+    if (recentRuns.length > 0) {
+      return recentRuns.map((run) => {
+        const workflow = workflowMap.get(run.workflowId);
+        const seconds = Math.floor((Date.now() - new Date(run.startedAt).getTime()) / 1000);
         const time =
           seconds < 60
             ? "Just now"
@@ -150,12 +152,12 @@ export async function getRecentActivity() {
             : `${Math.floor(seconds / 86400)}d ago`;
 
         return {
-          id: log.id,
+          id: run.id,
           type: "execution",
-          title: `${workflow?.name ?? "Workflow"} → ${log.step}`,
+          title: workflow?.name ?? "Workflow",
           time,
-          status: log.status,
-          workflowId: log.workflowId,
+          status: run.status === "completed" ? "success" : run.status,
+          workflowId: run.workflowId,
         };
       });
     }

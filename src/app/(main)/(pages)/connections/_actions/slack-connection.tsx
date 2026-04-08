@@ -52,31 +52,34 @@ export const onSlackConnect = async (
 ): Promise<void> => {
   if (!slack_access_token || !authed_user_token || !team_id || !user_id) return;
 
-  // Check by userId + teamId (not by token, since token will be encrypted)
-  const slackConnection = await db.slack.findFirst({
-    where: { userId: user_id, teamId: team_id },
-  });
-
-  if (!slackConnection) {
-    await db.slack.create({
-      data: {
-        userId: user_id,
-        appId: app_id,
-        authedUserId: authed_user_id,
-        authedUserToken: encrypt(authed_user_token),
-        slackAccessToken: encrypt(slack_access_token),
-        botUserId: bot_user_id,
-        teamId: team_id,
-        teamName: team_name,
-        connections: {
-          connectOrCreate: {
-            where: { userId_type: { userId: user_id, type: "Slack" } },
-            create: { userId: user_id, type: "Slack" },
-          },
+  // Upsert by userId + teamId composite key to prevent duplicate records
+  await db.slack.upsert({
+    where: { userId_teamId: { userId: user_id, teamId: team_id } },
+    update: {
+      appId: app_id,
+      authedUserId: authed_user_id,
+      authedUserToken: encrypt(authed_user_token),
+      slackAccessToken: encrypt(slack_access_token),
+      botUserId: bot_user_id,
+      teamName: team_name,
+    },
+    create: {
+      userId: user_id,
+      appId: app_id,
+      authedUserId: authed_user_id,
+      authedUserToken: encrypt(authed_user_token),
+      slackAccessToken: encrypt(slack_access_token),
+      botUserId: bot_user_id,
+      teamId: team_id,
+      teamName: team_name,
+      connections: {
+        connectOrCreate: {
+          where: { userId_type: { userId: user_id, type: "Slack" } },
+          create: { userId: user_id, type: "Slack" },
         },
       },
-    });
-  }
+    },
+  });
 };
 
 /**

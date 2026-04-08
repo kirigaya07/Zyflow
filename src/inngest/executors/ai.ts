@@ -1,4 +1,5 @@
 import type { ExecutionContext, Item, NodeConfig, NodeExecutor } from "../types";
+import { interpolate } from "../expressions";
 import OpenAI from "openai";
 
 export class AIExecutor implements NodeExecutor {
@@ -9,12 +10,15 @@ export class AIExecutor implements NodeExecutor {
   ): Promise<Item[]> {
     const { metadata } = config;
 
-    const prompt = metadata.prompt as string | undefined;
+    const rawPrompt = metadata.prompt as string | undefined;
     const model = (metadata.model as string) || "gpt-4o-mini";
 
-    if (!prompt) {
+    if (!rawPrompt) {
       return [{ json: { skipped: true, reason: "No prompt configured" } }];
     }
+
+    // Interpolate expressions so {{ trigger.field }} and {{ node.output }} work in prompts
+    const prompt = interpolate(rawPrompt, ctx.nodeOutputs, ctx.triggerPayload);
 
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 

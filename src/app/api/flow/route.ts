@@ -45,10 +45,9 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Validate cron secret to prevent unauthorized workflow triggering
+    // Require CRON_SECRET to prevent unauthorized workflow triggering
     const cronSecret = searchParams.get("secret");
-    if (process.env.CRON_SECRET && cronSecret !== process.env.CRON_SECRET) {
-      console.warn("❌ Invalid or missing CRON_SECRET for flow_id:", flowId);
+    if (cronSecret !== process.env.CRON_SECRET) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

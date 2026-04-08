@@ -1,42 +1,9 @@
 "use server";
 
-/**
- * Discord Connection Actions Module
- *
- * This module handles Discord webhook integration functionality:
- * - OAuth callback processing for Discord connections
- * - Webhook creation and management in the database
- * - Message posting to Discord channels via webhooks
- * - Connection status retrieval and validation
- *
- * Features:
- * - Duplicate webhook prevention
- * - Error handling for webhook operations
- * - Connection record management
- * - Message posting with error feedback
- */
-
 import { db } from "@/lib/db";
 import { currentUser } from "@clerk/nextjs/server";
 import axios from "axios";
 
-/**
- * Processes Discord OAuth callback and creates webhook connection.
- *
- * This function:
- * - Validates webhook parameters from Discord OAuth
- * - Prevents duplicate webhook creation for the same channel
- * - Creates database records for webhook and connection
- * - Handles existing webhook scenarios
- *
- * @param channel_id - Discord channel ID where webhook will operate
- * @param webhook_id - Unique Discord webhook identifier
- * @param webhook_name - Display name for the webhook
- * @param webhook_url - Discord webhook endpoint URL
- * @param id - User ID from Clerk authentication
- * @param guild_name - Discord server (guild) name
- * @param guild_id - Discord server (guild) ID
- */
 export const onDiscordConnect = async (
   channel_id: string,
   webhook_id: string,
@@ -46,140 +13,47 @@ export const onDiscordConnect = async (
   guild_name: string,
   guild_id: string
 ) => {
-  //check if webhook id params set
-  if (webhook_id && channel_id && webhook_name && webhook_url && guild_id && guild_name && id) {
-    //check if webhook exists in database with userid
-    const webhook = await db.discordWebhook.findFirst({
-      where: {
-        userId: id,
-      },
-      include: {
-        connections: {
-          select: {
-            type: true,
-          },
+  if (!webhook_id || !channel_id || !webhook_name || !webhook_url || !guild_id || !guild_name || !id) return;
+
+  // Upsert webhook record per-user per-channel (composite unique: userId + channelId)
+  await db.discordWebhook.upsert({
+    where: { userId_channelId: { userId: id, channelId: channel_id } },
+    update: {
+      webhookId: webhook_id,
+      url: webhook_url,
+      name: webhook_name,
+      guildName: guild_name,
+      guildId: guild_id,
+    },
+    create: {
+      userId: id,
+      webhookId: webhook_id,
+      channelId: channel_id,
+      guildId: guild_id,
+      name: webhook_name,
+      url: webhook_url,
+      guildName: guild_name,
+      connections: {
+        connectOrCreate: {
+          where: { userId_type: { userId: id, type: "Discord" } },
+          create: { userId: id, type: "Discord" },
         },
       },
-    });
-
-    //if webhook does not exist for this user
-    if (!webhook) {
-      //create new webhook
-      await db.discordWebhook.create({
-        data: {
-          userId: id,
-          webhookId: webhook_id,
-          channelId: channel_id,
-          guildId: guild_id,
-          name: webhook_name,
-          url: webhook_url,
-          guildName: guild_name,
-          connections: {
-            connectOrCreate: {
-              where: { userId_type: { userId: id, type: "Discord" } },
-              create: { userId: id, type: "Discord" },
-            },
-          },
-        },
-      });
-    }
-
-    //if webhook exists return check for duplicate
-    if (webhook) {
-      //check if webhook exists for target channel id
-      const webhook_channel = await db.discordWebhook.findUnique({
-        where: {
-          channelId: channel_id,
-        },
-        include: {
-          connections: {
-            select: {
-              type: true,
-            },
-          },
-        },
-      });
-
-      //if no webhook for channel create new webhook
-      if (!webhook_channel) {
-        await db.discordWebhook.create({
-          data: {
-            userId: id,
-            webhookId: webhook_id,
-            channelId: channel_id,
-            guildId: guild_id,
-            name: webhook_name,
-            url: webhook_url,
-            guildName: guild_name,
-            connections: {
-              create: {
-                userId: id,
-                type: "Discord",
-              },
-            },
-          },
-        });
-      } else {
-        // Webhook exists for this channel - ensure connection record exists
-        const existingConnection = webhook_channel.connections.find(
-          (conn) => conn.type === "Discord"
-        );
-
-        if (!existingConnection) {
-          // Connection record missing, create it
-          await db.connections.create({
-            data: {
-              userId: id,
-              type: "Discord",
-              discordWebhookId: webhook_channel.id,
-            },
-          });
-        }
-      }
-    }
-  }
+    },
+  });
 };
 
-/**
- * Retrieves the Discord webhook connection details for the current user.
- *
- * @returns Discord webhook data (URL, name, guild name) or null if not found
- */
 export const getDiscordConnectionUrl = async () => {
   const user = await currentUser();
   if (user) {
     const webhook = await db.discordWebhook.findFirst({
-      where: {
-        userId: user.id,
-      },
-      select: {
-        url: true,
-        name: true,
-        guildName: true,
-      },
+      where: { userId: user.id },
+      select: { url: true, name: true, guildName: true },
     });
-
     return webhook;
   }
 };
 
-/**
- * Posts content to a Discord channel via webhook.
- *
- * This function:
- * - Validates content before posting
- * - Handles webhook API communication
- * - Provides detailed error feedback
- * - Detects deleted/invalid webhooks
- *
- * @param content - Message content to post to Discord
- * @param url - Discord webhook URL endpoint
- * @returns Response object with success/failure status and error details
- */
-/**
- * Connects a Discord webhook manually from a user-supplied URL.
- * Skips the bot-based OAuth flow — useful when DISCORD_TOKEN is not configured.
- */
 export const connectDiscordManually = async (params: {
   webhookId: string;
   webhookUrl: string;
@@ -196,9 +70,6 @@ export const connectDiscordManually = async (params: {
   return { success: true };
 };
 
-/**
- * Removes all Discord webhook connections for the current user.
- */
 export const disconnectDiscord = async () => {
   const user = await currentUser();
   if (!user) return { error: "Not authenticated" };
@@ -209,22 +80,18 @@ export const disconnectDiscord = async () => {
 };
 
 export const postContentToWebHook = async (content: string, url: string) => {
-  if (content != "") {
+  if (content !== "") {
     try {
       const posted = await axios.post(url, { content });
-      if (posted) {
-        return { message: "success" };
-      }
+      if (posted) return { message: "success" };
       return { message: "failed request" };
     } catch (error: any) {
-
       if (error.response?.status === 404) {
         return {
           message: "Webhook not found - please reconnect Discord integration",
           error: "webhook_deleted",
         };
       }
-
       return {
         message: `Failed to post: ${error.message}`,
         error: error.response?.data || error.message,

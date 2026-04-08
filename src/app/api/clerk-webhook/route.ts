@@ -40,6 +40,33 @@ export async function POST(req: Request) {
   // ── Process event ────────────────────────────────────────────────────────
   const eventType = body.type as string;
 
+  // ── user.deleted — cascade-delete all user data ──────────────────────────
+  if (eventType === "user.deleted") {
+    const data = body.data as Record<string, unknown>;
+    const id = data.id as string;
+    if (!id) return new NextResponse("Missing user id", { status: 400 });
+
+    try {
+      const user = await db.user.findUnique({ where: { clerkId: id } });
+      if (user) {
+        // Delete in dependency order (FK constraints)
+        await db.connections.deleteMany({ where: { userId: id } });
+        await db.discordWebhook.deleteMany({ where: { userId: id } });
+        await db.slack.deleteMany({ where: { userId: id } });
+        await db.notion.deleteMany({ where: { userId: id } });
+        await db.workflows.deleteMany({ where: { userId: id } });
+        await db.localGoogleCredential.deleteMany({ where: { userId: user.id } });
+        await db.user.delete({ where: { clerkId: id } });
+        console.log("User deleted:", id);
+      }
+    } catch (err) {
+      console.error("DB error on user.deleted:", err);
+      return new NextResponse("Database error", { status: 500 });
+    }
+    return new NextResponse("OK", { status: 200 });
+  }
+
+  // ── user.created / user.updated — upsert record ──────────────────────────
   if (eventType === "user.created" || eventType === "user.updated") {
     const data = body.data as Record<string, unknown>;
 

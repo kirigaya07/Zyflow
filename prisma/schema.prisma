@@ -53,15 +53,18 @@ model LocalGoogleCredential {
 
 model DiscordWebhook {
   id          String        @id @default(uuid())
-  webhookId   String        @unique
-  url         String        @unique
+  webhookId   String
+  url         String
   name        String
   guildName   String
   guildId     String
-  channelId   String        @unique
+  channelId   String
   user        User          @relation(fields: [userId], references: [clerkId])
   userId      String
   connections Connections[]
+
+  @@unique([userId, webhookId])
+  @@unique([userId, channelId])
 }
 
 model Slack {
@@ -78,6 +81,9 @@ model Slack {
   User        User          @relation(fields: [userId], references: [clerkId])
   userId      String
   connections Connections[]
+
+  @@unique([userId, teamId])
+  @@index([userId])
 }
 
 model Notion {

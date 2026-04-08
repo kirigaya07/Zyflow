@@ -34,9 +34,15 @@ import { executeWorkflowDirect } from "@/lib/execute-workflow";
 
 /* ── Key derivation ───────────────────────────────────────────────────────── */
 
+/**
+ * Derives a self-contained API key that embeds the userId.
+ * Format: base64url( userId + ":" + HMAC-SHA256(userId) )
+ * This allows O(1) verification without scanning all users.
+ */
 export function deriveApiKey(userId: string): string {
   const secret = process.env.ENCRYPTION_KEY ?? "fallback-secret";
-  return createHmac("sha256", secret).update(userId).digest("hex");
+  const hmac = createHmac("sha256", secret).update(userId).digest("hex");
+  return Buffer.from(`${userId}:${hmac}`).toString("base64url");
 }
 
 /* ── Auth ─────────────────────────────────────────────────────────────────── */
@@ -47,12 +53,29 @@ async function authenticate(req: NextRequest): Promise<string | null> {
   const token = auth.slice(7).trim();
   if (!token) return null;
 
-  // Find the user whose derived key matches the token
-  const users = await db.user.findMany({ select: { clerkId: true } });
-  for (const u of users) {
-    if (deriveApiKey(u.clerkId) === token) return u.clerkId;
+  try {
+    const decoded = Buffer.from(token, "base64url").toString("utf8");
+    const colonIdx = decoded.indexOf(":");
+    if (colonIdx === -1) return null;
+
+    const userId = decoded.slice(0, colonIdx);
+    const providedHmac = decoded.slice(colonIdx + 1);
+    const expectedHmac = createHmac(
+      "sha256",
+      process.env.ENCRYPTION_KEY ?? "fallback-secret"
+    ).update(userId).digest("hex");
+
+    if (providedHmac !== expectedHmac) return null;
+
+    // Confirm user still exists in DB
+    const user = await db.user.findUnique({
+      where: { clerkId: userId },
+      select: { clerkId: true },
+    });
+    return user?.clerkId ?? null;
+  } catch {
+    return null;
   }
-  return null;
 }
 
 /* ── JSON-RPC helpers ─────────────────────────────────────────────────────── */
