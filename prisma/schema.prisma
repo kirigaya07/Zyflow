@@ -149,8 +149,8 @@ model Workflows {
 model ExecutionLog {
   id         String   @id @default(uuid())
   workflowId String
-  step       String   // "Discord" | "Slack" | "Notion" | "Email" | "Wait" | "AI"
-  status     String   // "success" | "failed" | "skipped"
+  step       String // "Discord" | "Slack" | "Notion" | "Email" | "Wait" | "AI"
+  status     String // "success" | "failed" | "skipped"
   message    String?
   createdAt  DateTime @default(now())
 
@@ -163,7 +163,7 @@ model WorkflowRun {
   id          String    @id @default(cuid())
   workflowId  String
   status      String    @default("running") // "running" | "completed" | "failed" | "paused"
-  trigger     Json?     // trigger source + initial payload
+  trigger     Json? // trigger source + initial payload
   error       String?
   startedAt   DateTime  @default(now())
   completedAt DateTime?
@@ -175,14 +175,14 @@ model WorkflowRun {
 
 /// Tracks per-node execution within a WorkflowRun — input/output data flows through here.
 model NodeRun {
-  id          String       @id @default(cuid())
+  id          String      @id @default(cuid())
   runId       String
-  run         WorkflowRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
-  nodeId      String       // matches node id on the canvas
-  nodeType    String       // Discord | Slack | HTTP Request | etc.
-  status      String       @default("pending") // "pending" | "running" | "completed" | "failed" | "skipped"
-  inputData   Json?        // Item[] received from previous node
-  outputData  Json?        // Item[] produced by this node
+  run         WorkflowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  nodeId      String // matches node id on the canvas
+  nodeType    String // Discord | Slack | HTTP Request | etc.
+  status      String      @default("pending") // "pending" | "running" | "completed" | "failed" | "skipped"
+  inputData   Json? // Item[] received from previous node
+  outputData  Json? // Item[] produced by this node
   error       String?
   startedAt   DateTime?
   completedAt DateTime?
@@ -196,7 +196,7 @@ model WebhookEvent {
   id          String   @id @default(uuid())
   /// Composite key: "<resource-id>-<message-number>" for Drive, or a unique event ID for other sources
   messageId   String   @unique
-  source      String   // "drive" | "zoom" | "cron"
+  source      String // "drive" | "zoom" | "cron"
   processedAt DateTime @default(now())
 
   @@index([processedAt])
