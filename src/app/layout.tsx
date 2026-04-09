@@ -6,6 +6,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import ModalProvider from "@/providers/model-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const font = DM_Sans({ subsets: ["latin"] });
 
@@ -33,6 +34,7 @@ export default function RootLayout({
               <ModalProvider>
                 {children}
                 <Toaster />
+                <SpeedInsights />
               </ModalProvider>
             </LoadingProvider>
           </ThemeProvider>

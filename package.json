@@ -32,6 +32,7 @@
     "@types/nodemailer": "^7.0.2",
     "@types/pg": "^8.18.0",
     "@uploadcare/react-uploader": "^1.10.2",
+    "@vercel/speed-insights": "^2.0.0",
     "@xyflow/react": "^12.8.6",
     "axios": "^1.12.2",
     "class-variance-authority": "^0.7.1",
