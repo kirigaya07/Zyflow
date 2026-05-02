@@ -8,8 +8,8 @@ import React from "react";
 
 type Props = object;
 
-const WorkflowButton = (props: Props) => {
-  const { setOpen, setClose } = useModal();
+const WorkflowButton = (_props: Props) => {
+  const { setOpen } = useModal();
   const handleClick = () => {
     setOpen(
       <CustomModal

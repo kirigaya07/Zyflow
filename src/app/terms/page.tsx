@@ -47,7 +47,7 @@ export default function TermsPage() {
           </h2>
           <p>
             In no event shall Zyflow or its suppliers be liable for any damages
-            arising out of the use or inability to use the materials on Zyflow's
+            arising out of the use or inability to use the materials on Zyflow&apos;s
             website.
           </p>
         </section>

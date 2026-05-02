@@ -170,7 +170,6 @@ export default async function LogsPage({
             <tbody className="divide-y divide-border">
               {logs.map((log) => {
                 const cfg = statusConfig[log.status as keyof typeof statusConfig] ?? statusConfig.skipped;
-                const Icon = cfg.icon;
                 return (
                   <tr key={log.id} className="hover:bg-secondary/30 transition-colors">
                     <td className="px-4 py-3 font-medium max-w-[160px] truncate">

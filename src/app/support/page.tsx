@@ -12,7 +12,7 @@ export default function SupportPage() {
     <div className="container mx-auto py-12 px-4">
       <h1 className="text-4xl font-bold mb-6">Support</h1>
       <p className="text-lg text-muted-foreground mb-8">
-        We're here to help! Get assistance with your Zyflow account and
+        We&apos;re here to help! Get assistance with your Zyflow account and
         services.
       </p>
 

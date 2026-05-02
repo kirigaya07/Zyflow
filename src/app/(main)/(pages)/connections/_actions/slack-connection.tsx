@@ -205,7 +205,7 @@ export const postMessageToSlack = async (
         postMessageInSlackChannel(slackAccessToken, channel.value, content)
       )
     );
-  } catch (error) {
+  } catch {
     return { message: "Message could not be sent to Slack" };
   }
 

@@ -1,5 +1,5 @@
 "use client";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ReactFlow,
   applyNodeChanges,
@@ -144,7 +144,6 @@ const EditorCanvas = () => {
   /** Replace the entire canvas with AI-generated nodes + edges, then fit view */
   const handleLoadWorkflow = useCallback(
     (newNodes: EditorNodeType[], newEdges: { id: string; source: string; target: string }[]) => {
-      // @ts-ignore — xyflow generic mismatch is safe here
       setNodes(newNodes);
       setEdges(newEdges);
       // Fit view after React has re-rendered the new nodes
@@ -188,7 +187,6 @@ const EditorCanvas = () => {
   useEffect(() => {
     const handler = (e: Event) => {
       const { nodeId } = (e as CustomEvent<{ nodeId: string }>).detail;
-      // @ts-ignore — xyflow generic mismatch is safe here
       setNodes((nds) => {
         const orig = nds.find((n: EditorNodeType) => n.id === nodeId);
         if (!orig) return nds;
@@ -236,14 +234,13 @@ const EditorCanvas = () => {
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) =>
-      // @ts-ignore — xyflow generic mismatch is safe here
+      // @ts-expect-error — xyflow generic mismatch is safe here
       setNodes((nds) => applyNodeChanges(changes, nds)),
     []
   );
 
   const onEdgesChange = useCallback(
     (changes: EdgeChange[]) =>
-      // @ts-ignore
       setEdges((eds) => applyEdgeChanges(changes, eds)),
     []
   );
@@ -297,7 +294,6 @@ const EditorCanvas = () => {
         },
       };
 
-      // @ts-ignore
       setNodes((nds) => nds.concat(newNode));
     },
     [reactFlowInstance, state]
@@ -342,7 +338,6 @@ const EditorCanvas = () => {
         },
       };
 
-      // @ts-ignore
       setNodes((nds) => nds.concat(newNode));
     },
     [reactFlowInstance, state]

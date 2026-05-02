@@ -47,7 +47,7 @@ type Props = {
  * @param props - Component props containing route parameters
  * @returns JSX.Element - The workflow editor interface
  */
-const Page = (props: Props) => {
+const Page = (_props: Props) => {
   return (
     <div className="h-full">
       <EditorProvider>

@@ -151,10 +151,6 @@ export const onCreateNewPageInDatabase = async (
 ) => {
   const notion = new Client({ auth: accessToken });
 
-  const parent = databaseId
-    ? { type: "database_id" as const, database_id: databaseId }
-    : { type: "page_id" as const, page_id: "" };
-
   const response = await notion.pages.create({
     parent: databaseId
       ? { type: "database_id", database_id: databaseId }

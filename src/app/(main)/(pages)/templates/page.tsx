@@ -13,7 +13,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useTemplate } from "./_actions/use-template";
+import { useTemplate as applyTemplate } from "./_actions/use-template";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -120,7 +120,7 @@ export default function TemplatesPage() {
     setLoadingId(id);
     startTransition(async () => {
       // @ts-expect-error server action import
-      const res = await useTemplate(id);
+      const res = await applyTemplate(id);
       if (res?.ok && res.workflowId) {
         router.push(`/workflows/editor/${res.workflowId}`);
       } else {

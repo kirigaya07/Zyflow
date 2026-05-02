@@ -17,7 +17,7 @@ export type ConnectionProviderProps = {
   /** Function to update Discord node configuration */
   setDiscordNode: React.Dispatch<React.SetStateAction<any>>;
   /** Google Drive/Services integration data array */
-  googleNode: {}[];
+  googleNode: Record<string, unknown>[];
   /** Function to update Google node configuration */
   setGoogleNode: React.Dispatch<React.SetStateAction<any>>;
   /** Notion workspace and database integration settings */

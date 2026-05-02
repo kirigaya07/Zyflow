@@ -16,7 +16,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { X, Copy, Check, Loader2, CheckCircle2 } from "lucide-react";
 import ExecutionLogs from "./execution-logs";
@@ -1143,7 +1142,7 @@ function NodeConfigForms({
     if (!["Slack", "Notion", "Discord"].includes(nodeType)) return;
     fetchedRef.current = true;
     getConnectedServices().then(setServices);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [node.id, node.data.type]);
 
   // Effect 2: Auto-populate — runs whenever node changes OR services arrive
