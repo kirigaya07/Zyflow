@@ -28,11 +28,26 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
-import { createHmac } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 import { db } from "@/lib/db";
 import { executeWorkflowDirect } from "@/lib/execute-workflow";
 
 /* ── Key derivation ───────────────────────────────────────────────────────── */
+
+/**
+ * Returns the HMAC signing secret. Fails closed if no strong secret is
+ * configured — never fall back to a hard-coded value, which would allow
+ * anyone to forge a valid API key for any userId.
+ */
+function getSigningSecret(): string {
+  const secret = process.env.ENCRYPTION_KEY;
+  if (!secret || secret.length < 16) {
+    throw new Error(
+      "ENCRYPTION_KEY environment variable must be set (>= 16 chars) to sign MCP API keys"
+    );
+  }
+  return secret;
+}
 
 /**
  * Derives a self-contained API key that embeds the userId.
@@ -40,9 +55,16 @@ import { executeWorkflowDirect } from "@/lib/execute-workflow";
  * This allows O(1) verification without scanning all users.
  */
 export function deriveApiKey(userId: string): string {
-  const secret = process.env.ENCRYPTION_KEY ?? "fallback-secret";
-  const hmac = createHmac("sha256", secret).update(userId).digest("hex");
+  const hmac = createHmac("sha256", getSigningSecret()).update(userId).digest("hex");
   return Buffer.from(`${userId}:${hmac}`).toString("base64url");
+}
+
+/** Constant-time string comparison to avoid leaking the secret via timing. */
+function safeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a, "utf8");
+  const bufB = Buffer.from(b, "utf8");
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
 }
 
 /* ── Auth ─────────────────────────────────────────────────────────────────── */
@@ -60,12 +82,11 @@ async function authenticate(req: NextRequest): Promise<string | null> {
 
     const userId = decoded.slice(0, colonIdx);
     const providedHmac = decoded.slice(colonIdx + 1);
-    const expectedHmac = createHmac(
-      "sha256",
-      process.env.ENCRYPTION_KEY ?? "fallback-secret"
-    ).update(userId).digest("hex");
+    const expectedHmac = createHmac("sha256", getSigningSecret())
+      .update(userId)
+      .digest("hex");
 
-    if (providedHmac !== expectedHmac) return null;
+    if (!safeEqual(providedHmac, expectedHmac)) return null;
 
     // Confirm user still exists in DB
     const user = await db.user.findUnique({

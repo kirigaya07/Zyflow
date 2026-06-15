@@ -1,4 +1,5 @@
 import type { ExecutionContext, Item, NodeConfig, NodeExecutor } from "../types";
+import { assertSafeUrl } from "@/lib/ssrf";
 
 /**
  * HTTP Request executor — call any external API.
@@ -24,6 +25,9 @@ export class HttpRequestExecutor implements NodeExecutor {
       return [{ json: { skipped: true, reason: "No URL configured" } }];
     }
 
+    // Guard against SSRF — reject internal/private targets before fetching.
+    const safeUrl = await assertSafeUrl(url);
+
     const method = ((metadata.method as string) || "GET").toUpperCase();
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
@@ -43,7 +47,7 @@ export class HttpRequestExecutor implements NodeExecutor {
       ? JSON.stringify(metadata.body)
       : undefined;
 
-    const response = await fetch(url, { method, headers, body });
+    const response = await fetch(safeUrl, { method, headers, body });
 
     let responseData: unknown;
     const contentType = response.headers.get("content-type") || "";

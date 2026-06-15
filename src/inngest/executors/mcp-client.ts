@@ -10,6 +10,7 @@
 
 import { interpolate, interpolateObject } from "../expressions";
 import type { ExecutionContext, Item, NodeConfig, NodeExecutor } from "../types";
+import { assertSafeUrl } from "@/lib/ssrf";
 
 export class McpClientExecutor implements NodeExecutor {
   async execute(
@@ -35,6 +36,9 @@ export class McpClientExecutor implements NodeExecutor {
       return [{ json: { skipped: true, reason: "MCP server URL and tool name are required" } }];
     }
 
+    // Guard against SSRF — reject internal/private targets before fetching.
+    const safeServerUrl = await assertSafeUrl(serverUrl);
+
     // Parse toolInput — accepts a JSON string or uses the raw metadata object
     let toolArguments: Record<string, unknown> = {};
     const rawInput = metadata.toolInput as string | Record<string, unknown> | undefined;
@@ -59,7 +63,7 @@ export class McpClientExecutor implements NodeExecutor {
     if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
 
     // Step 1 — initialize (required by the MCP protocol)
-    const initRes = await fetch(serverUrl, {
+    const initRes = await fetch(safeServerUrl, {
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -79,7 +83,7 @@ export class McpClientExecutor implements NodeExecutor {
     }
 
     // Step 2 — call the tool
-    const callRes = await fetch(serverUrl, {
+    const callRes = await fetch(safeServerUrl, {
       method: "POST",
       headers,
       body: JSON.stringify({

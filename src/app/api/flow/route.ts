@@ -8,7 +8,17 @@ import { postMessageToSlack } from "@/app/(main)/(pages)/connections/_actions/sl
 import { sendEmailToMultipleRecipientsViaGmail } from "@/app/(main)/(pages)/connections/_actions/email-connection";
 import { safeDecrypt } from "@/lib/encryption";
 import { withRetry } from "@/lib/retry";
+import { timingSafeEqual } from "crypto";
 import axios from "axios";
+
+/** Constant-time comparison; returns false if either side is missing. */
+function secretsMatch(provided: string | null, expected: string | undefined): boolean {
+  if (!provided || !expected) return false;
+  const a = Buffer.from(provided, "utf8");
+  const b = Buffer.from(expected, "utf8");
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
 
 async function logStep(
   workflowId: string,
@@ -45,9 +55,10 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Require CRON_SECRET to prevent unauthorized workflow triggering
+    // Require CRON_SECRET to prevent unauthorized workflow triggering.
+    // Fail closed if the secret is not configured server-side.
     const cronSecret = searchParams.get("secret");
-    if (cronSecret !== process.env.CRON_SECRET) {
+    if (!secretsMatch(cronSecret, process.env.CRON_SECRET)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

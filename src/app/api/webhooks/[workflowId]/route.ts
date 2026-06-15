@@ -77,9 +77,10 @@ export async function POST(
 
     return NextResponse.json({ received: true, workflowId, runId: result.runId });
   } catch (err) {
+    // Log full detail server-side, but don't leak internals to the caller.
     console.error("[webhook] POST error:", err);
     return NextResponse.json(
-      { error: String(err instanceof Error ? err.message : err) },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
